@@ -17,6 +17,10 @@ import {
   MessageCircle,
   FileText,
   ShieldCheck,
+  Copy,
+  Check,
+  Maximize2,
+  X,
 } from "lucide-react";
 import api from "@/lib/api";
 import { Order, OrderStatus } from "@/types";
@@ -51,12 +55,20 @@ function OrderTrackingContent() {
   // Deposit Form State
   const [depositAmount, setDepositAmount] = useState<string>("");
   const [depositMethod, setDepositMethod] = useState<"instapay" | "vodafone_cash" | "telda">("instapay");
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const copyToClipboard = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
 
   const fetchOrder = async (num: string) => {
     if (!num.trim()) return;
@@ -617,25 +629,278 @@ function OrderTrackingContent() {
                 </div>
 
                 <div>
-                  <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "4px" }}>
+                  <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "8px" }}>
                     {t("select_method")}
                   </label>
-                  <select
-                    value={depositMethod}
-                    onChange={(e) => setDepositMethod(e.target.value as any)}
+                  
+                  {/* Method Tabs */}
+                  <div
                     style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      borderRadius: "8px",
-                      border: "1px solid var(--color-border)",
-                      fontSize: "0.9375rem",
-                      backgroundColor: "#FFFFFF",
+                      display: "grid",
+                      gridTemplateColumns: "repeat(3, 1fr)",
+                      gap: "8px",
+                      backgroundColor: "#F4EFEA",
+                      padding: "4px",
+                      borderRadius: "10px",
+                      marginBottom: "12px",
                     }}
                   >
-                    <option value="instapay">InstaPay ({MOCK_SETTINGS.payment.instapay_address})</option>
-                    <option value="vodafone_cash">Vodafone Cash ({MOCK_SETTINGS.payment.vodafone_cash_number})</option>
-                    <option value="telda">Telda ({MOCK_SETTINGS.payment.telda_handle})</option>
-                  </select>
+                    <button
+                      type="button"
+                      onClick={() => setDepositMethod("instapay")}
+                      style={{
+                        padding: "8px 10px",
+                        borderRadius: "8px",
+                        border: "none",
+                        fontSize: "0.8125rem",
+                        fontWeight: depositMethod === "instapay" ? 700 : 500,
+                        backgroundColor: depositMethod === "instapay" ? "#FFFFFF" : "transparent",
+                        color: depositMethod === "instapay" ? "#3F20BA" : "var(--color-text-secondary)",
+                        boxShadow: depositMethod === "instapay" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      InstaPay
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDepositMethod("vodafone_cash")}
+                      style={{
+                        padding: "8px 10px",
+                        borderRadius: "8px",
+                        border: "none",
+                        fontSize: "0.8125rem",
+                        fontWeight: depositMethod === "vodafone_cash" ? 700 : 500,
+                        backgroundColor: depositMethod === "vodafone_cash" ? "#FFFFFF" : "transparent",
+                        color: depositMethod === "vodafone_cash" ? "#E60000" : "var(--color-text-secondary)",
+                        boxShadow: depositMethod === "vodafone_cash" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      {language === "ar" ? "محفظة كاش" : "Mobile Wallet"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDepositMethod("telda")}
+                      style={{
+                        padding: "8px 10px",
+                        borderRadius: "8px",
+                        border: "none",
+                        fontSize: "0.8125rem",
+                        fontWeight: depositMethod === "telda" ? 700 : 500,
+                        backgroundColor: depositMethod === "telda" ? "#FFFFFF" : "transparent",
+                        color: depositMethod === "telda" ? "#111827" : "var(--color-text-secondary)",
+                        boxShadow: depositMethod === "telda" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      Telda
+                    </button>
+                  </div>
+
+                  {/* Method Details Box */}
+                  {depositMethod === "instapay" && (
+                    <div
+                      style={{
+                        backgroundColor: "#F8FAFC",
+                        borderRadius: "12px",
+                        border: "1px solid #E2E8F0",
+                        padding: "16px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "12px",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+                        <div>
+                          <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#3F20BA" }}>
+                            {language === "ar" ? "رقم البطاقة (Card Number)" : "Card Number"}
+                          </div>
+                          <div style={{ fontSize: "1.0625rem", fontWeight: 700, color: "var(--color-text)", letterSpacing: "1px", direction: "ltr" }}>
+                            5484 4602 2730 8764
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard("5484460227308764", "instapay-track")}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            padding: "6px 12px",
+                            borderRadius: "6px",
+                            border: "1px solid #3F20BA",
+                            backgroundColor: copiedKey === "instapay-track" ? "#EEF2FF" : "#FFFFFF",
+                            color: "#3F20BA",
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                          }}
+                        >
+                          {copiedKey === "instapay-track" ? <Check size={13} /> : <Copy size={13} />}
+                          <span>{copiedKey === "instapay-track" ? t("copied_btn") : t("copy_btn")}</span>
+                        </button>
+                      </div>
+
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem", borderTop: "1px dashed #E2E8F0", paddingTop: "8px" }}>
+                        <span style={{ color: "var(--color-text-secondary)" }}>
+                          {language === "ar" ? "اسم صاحب البطاقة:" : "Cardholder Name:"}
+                        </span>
+                        <span style={{ fontWeight: 700 }}>dalia ghaleb</span>
+                      </div>
+
+                      {/* Photo Instruction for InstaPay ONLY */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                        <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--color-text-secondary)" }}>
+                          {language === "ar" ? "صورة توضيحية لخطوات التحويل في إنستاباي (اضغطي للتكبير):" : "InstaPay visual instructions (click to zoom):"}
+                        </div>
+                        <div
+                          onClick={() => setLightboxImage("/instapay-instructions.jpg")}
+                          style={{
+                            position: "relative",
+                            borderRadius: "8px",
+                            overflow: "hidden",
+                            border: "1px solid var(--color-border)",
+                            cursor: "pointer",
+                            maxHeight: "140px",
+                            backgroundColor: "#000",
+                          }}
+                        >
+                          <img
+                            src="/instapay-instructions.jpg"
+                            alt="InstaPay Instructions"
+                            style={{ width: "100%", height: "140px", objectFit: "cover", objectPosition: "top" }}
+                          />
+                          <div
+                            style={{
+                              position: "absolute",
+                              bottom: "8px",
+                              right: isRTL ? "auto" : "8px",
+                              left: isRTL ? "8px" : "auto",
+                              backgroundColor: "rgba(0,0,0,0.75)",
+                              color: "#FFF",
+                              padding: "4px 8px",
+                              borderRadius: "14px",
+                              fontSize: "0.7rem",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "4px",
+                            }}
+                          >
+                            <Maximize2 size={12} />
+                            <span>{language === "ar" ? "تكبير الصورة" : "Enlarge"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {depositMethod === "vodafone_cash" && (
+                    <div
+                      style={{
+                        backgroundColor: "#FEF2F2",
+                        borderRadius: "12px",
+                        border: "1px solid #FECACA",
+                        padding: "16px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "10px",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+                        <div>
+                          <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#E60000" }}>
+                            {language === "ar" ? "رقم المحفظة (فودافون كاش / أورانج / اتصالات / وي)" : "Mobile Wallet Number"}
+                          </div>
+                          <div style={{ fontSize: "1.125rem", fontWeight: 700, color: "var(--color-text)", letterSpacing: "1px", direction: "ltr" }}>
+                            01023402591
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard("01023402591", "wallet-track")}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            padding: "6px 12px",
+                            borderRadius: "6px",
+                            border: "1px solid #E60000",
+                            backgroundColor: copiedKey === "wallet-track" ? "#FEE2E2" : "#FFFFFF",
+                            color: "#E60000",
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                          }}
+                        >
+                          {copiedKey === "wallet-track" ? <Check size={13} /> : <Copy size={13} />}
+                          <span>{copiedKey === "wallet-track" ? t("copied_btn") : t("copy_btn")}</span>
+                        </button>
+                      </div>
+
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem", borderTop: "1px dashed #FECACA", paddingTop: "8px" }}>
+                        <span style={{ color: "#991B1B" }}>
+                          {language === "ar" ? "الاسم المسجل في المحفظة:" : "Registered Name:"}
+                        </span>
+                        <span style={{ fontWeight: 700, color: "#7F1D1D" }}>داليا غ*** ع**</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {depositMethod === "telda" && (
+                    <div
+                      style={{
+                        backgroundColor: "#F8FAFC",
+                        borderRadius: "12px",
+                        border: "1px solid #E2E8F0",
+                        padding: "16px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "10px",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+                        <div>
+                          <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#111827" }}>
+                            {language === "ar" ? "اسم الحساب في تيلدا" : "Telda Account"}
+                          </div>
+                          <div style={{ fontSize: "1.0625rem", fontWeight: 700, color: "var(--color-text)", direction: "ltr" }}>
+                            @daliaghale616990
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard("@daliaghale616990", "telda-track")}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            padding: "6px 12px",
+                            borderRadius: "6px",
+                            border: "1px solid #111827",
+                            backgroundColor: copiedKey === "telda-track" ? "#F3F4F6" : "#FFFFFF",
+                            color: "#111827",
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                          }}
+                        >
+                          {copiedKey === "telda-track" ? <Check size={13} /> : <Copy size={13} />}
+                          <span>{copiedKey === "telda-track" ? t("copied_btn") : t("copy_btn")}</span>
+                        </button>
+                      </div>
+
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem", borderTop: "1px dashed #E2E8F0", paddingTop: "8px" }}>
+                        <span style={{ color: "var(--color-text-secondary)" }}>
+                          {language === "ar" ? "الاسم:" : "Name:"}
+                        </span>
+                        <span style={{ fontWeight: 700 }}>dalia ghaleb</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -839,6 +1104,85 @@ function OrderTrackingContent() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Lightbox Modal for Instructions */}
+      {lightboxImage && (
+        <div
+          onClick={() => setLightboxImage(null)}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.85)",
+            backdropFilter: "blur(6px)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+            cursor: "zoom-out",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "relative",
+              maxWidth: "600px",
+              width: "100%",
+              backgroundColor: "#18181B",
+              borderRadius: "16px",
+              overflow: "hidden",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.5)",
+              cursor: "default",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "14px 20px",
+                borderBottom: "1px solid #27272A",
+                color: "#FFFFFF",
+              }}
+            >
+              <div style={{ fontSize: "0.9375rem", fontWeight: 600 }}>
+                {language === "ar" ? "شرح التحويل عبر تطبيق إنستاباي" : "InstaPay Transfer Instructions"}
+              </div>
+              <button
+                type="button"
+                onClick={() => setLightboxImage(null)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#A1A1AA",
+                  cursor: "pointer",
+                  padding: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ maxHeight: "80vh", overflowY: "auto", padding: "12px", backgroundColor: "#000" }}>
+              <img
+                src={lightboxImage}
+                alt="InstaPay Transfer Full Instructions"
+                style={{
+                  width: "100%",
+                  height: "auto",
+                  display: "block",
+                  borderRadius: "8px",
+                }}
+              />
+            </div>
+          </div>
         </div>
       )}
 

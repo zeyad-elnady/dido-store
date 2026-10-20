@@ -530,24 +530,54 @@ export default function AdminSettingsPage() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px" }}>
             <div>
               <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "6px" }}>
-                {isRTL ? "عنوان إنستاباي (IPA)" : "InstaPay Address (IPA)"}
+                {isRTL ? "رقم بطاقة إنستاباي (Card Number)" : "InstaPay Card Number"}
               </label>
               <input
                 type="text"
-                value={paymentSettings.instapay_address || ""}
-                onChange={(e) => setPaymentSettings({ ...paymentSettings, instapay_address: e.target.value })}
+                value={(paymentSettings as any).instapay_card_number || paymentSettings.instapay_address || ""}
+                onChange={(e) =>
+                  setPaymentSettings({
+                    ...paymentSettings,
+                    instapay_card_number: e.target.value,
+                    instapay_address: e.target.value,
+                  } as any)
+                }
                 style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--color-border)" }}
               />
             </div>
 
             <div>
               <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "6px" }}>
-                {isRTL ? "رقم محفظة فودافون كاش" : "Vodafone Cash Wallet Number"}
+                {isRTL ? "اسم صاحب بطاقة إنستاباي" : "InstaPay Cardholder Name"}
+              </label>
+              <input
+                type="text"
+                value={(paymentSettings as any).instapay_name || ""}
+                onChange={(e) => setPaymentSettings({ ...paymentSettings, instapay_name: e.target.value } as any)}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--color-border)" }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "6px" }}>
+                {isRTL ? "رقم المحفظة الإلكترونية (فودافون كاش)" : "Mobile Wallet Number (Vodafone Cash)"}
               </label>
               <input
                 type="text"
                 value={paymentSettings.vodafone_cash_number || ""}
                 onChange={(e) => setPaymentSettings({ ...paymentSettings, vodafone_cash_number: e.target.value })}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--color-border)" }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "6px" }}>
+                {isRTL ? "اسم صاحب المحفظة كما يظهر للمحول" : "Wallet Registered Name"}
+              </label>
+              <input
+                type="text"
+                value={(paymentSettings as any).vodafone_cash_name || ""}
+                onChange={(e) => setPaymentSettings({ ...paymentSettings, vodafone_cash_name: e.target.value } as any)}
                 style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--color-border)" }}
               />
             </div>

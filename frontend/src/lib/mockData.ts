@@ -270,9 +270,12 @@ export const MOCK_SETTINGS: PublicSettings = {
     address: "New Cairo / Nasr City, Cairo, Egypt",
   },
   payment: {
-    instapay_address: "didostore@instapay",
+    instapay_address: "5484 4602 2730 8764",
+    instapay_card_number: "5484 4602 2730 8764",
+    instapay_name: "dalia ghaleb",
     vodafone_cash_number: "01023402591",
-    telda_handle: "@didostore",
+    vodafone_cash_name: "داليا غ*** ع**",
+    telda_handle: "@daliaghale616990",
     deposit_percentage: "50",
   },
   social: {
