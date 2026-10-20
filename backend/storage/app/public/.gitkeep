@@ -1,0 +1,4 @@
+<?php
+
+// Create placeholder directories for storage
+// These are created automatically by Laravel but we need them in the Docker volume.
