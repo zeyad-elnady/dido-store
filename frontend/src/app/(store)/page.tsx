@@ -840,7 +840,7 @@ export default function HomePage() {
                   lineHeight: 0.88,
                 }}
               >
-                MEET THE<br />FOUNDER
+                MEET THE<br />OWNER
               </div>
             </div>
 
@@ -901,7 +901,7 @@ export default function HomePage() {
               >
                 <img
                   src={founder.photo_path || "/dalia-founder.jpg"}
-                  alt="Dalia — Founder of Dido Store"
+                  alt="Dalia — Owner of Dido Store"
                   style={{
                     width: "100%",
                     height: "100%",
@@ -965,7 +965,7 @@ export default function HomePage() {
             >
               <span>{language === "ar" ? "داليا (ديدو)" : "DALIA (DIDO)"}</span>
               <span style={{ opacity: 0.45 }}>•</span>
-              <span>{language === "ar" ? "مؤسسة البراند" : "FOUNDER"}</span>
+              <span>{language === "ar" ? "صاحبة المتجر" : "OWNER"}</span>
               <span style={{ opacity: 0.45 }}>•</span>
               <span>{language === "ar" ? "القاهرة" : "CAIRO"}</span>
             </div>
@@ -973,7 +973,7 @@ export default function HomePage() {
 
           {/* ── Right Column: Editorial Copy in Third Person ──────────── */}
           <div>
-            {/* Pill Badge: MEET THE FOUNDER */}
+            {/* Pill Badge: MEET THE OWNER */}
             <div
               style={{
                 display: "inline-flex",
@@ -991,7 +991,7 @@ export default function HomePage() {
               }}
             >
               <Sparkles size={14} />
-              <span>{language === "ar" ? "تعرفي على المؤسسة" : "MEET THE FOUNDER"}</span>
+              <span>{language === "ar" ? "تعرفي على صاحبة المتجر" : "MEET THE OWNER"}</span>
             </div>
 
             {/* Editorial Heading */}
@@ -1025,7 +1025,7 @@ export default function HomePage() {
             {/* Editorial Quote Box (Third-Person Attributed) */}
             <div
               style={{
-                padding: "18px 22px",
+                padding: "16px 20px",
                 backgroundColor: "#FAF7F2",
                 borderLeft: isRTL ? "none" : "4px solid var(--color-accent)",
                 borderRight: isRTL ? "4px solid var(--color-accent)" : "none",
@@ -1033,13 +1033,13 @@ export default function HomePage() {
                 marginBottom: "24px",
                 fontStyle: "italic",
                 color: "var(--color-text)",
-                fontSize: "0.95rem",
-                lineHeight: 1.65,
+                fontSize: "0.9375rem",
+                lineHeight: 1.6,
               }}
             >
               {language === "ar"
-                ? "«تؤمن داليا بأن كل بنت في مصر تستحق أن تتألق بأرقى صيحات الموضة العالمية بسهولة وراحة، وبأفضل سعر وبدون تعقيدات الشحن الدولي أو العملات الأجنبية.»"
-                : "“Dalia believes every Egyptian girl deserves to express her unique style with authentic global trends—freed from currency restrictions, customs duties, and import delays.”"}
+                ? "«تختار داليا أرقى تصاميم شي إن العالمية لتتألق كل فتاة في مصر بأناقة وثقة، وبأسهل تجربة دفع وشحن محلي.»"
+                : "“Dalia curates authentic global styles so every woman in Egypt can dress effortlessly chic—freed from currency limits and import delays.”"}
             </div>
 
             {/* Value Highlights Badges */}
@@ -1059,7 +1059,7 @@ export default function HomePage() {
                 }}
               >
                 <CheckCircle2 size={15} color="var(--color-accent)" />
-                <span>{language === "ar" ? "20 عاماً • مؤسسة البراند" : "20 Years Old • Founder"}</span>
+                <span>{language === "ar" ? "صاحبة المتجر • ديدو ستور" : "Store Owner • Dido Store"}</span>
               </div>
 
               <div
@@ -1106,7 +1106,7 @@ export default function HomePage() {
                   {localize(founder, "founder_name")}
                 </div>
                 <div style={{ fontSize: "0.875rem", color: "var(--color-accent)", fontWeight: 600, marginTop: "2px" }}>
-                  {language === "ar" ? "20 سنة • مؤسسة متجر ديدو مصر" : "20 years old • Founder, Dido Store Egypt"}
+                  {language === "ar" ? "صاحبة متجر ديدو مصر" : "Owner, Dido Store Egypt"}
                 </div>
               </div>
             </div>
@@ -1183,7 +1183,7 @@ export default function HomePage() {
                 marginBottom: "20px",
               }}
             >
-              MEET THE<br />FOUNDER
+              MEET THE<br />OWNER
             </div>
 
             {/* High-Res Photo Container */}
@@ -1198,7 +1198,7 @@ export default function HomePage() {
             >
               <img
                 src={founder.photo_path || "/dalia-founder.jpg"}
-                alt="Dalia — Founder of Dido Store"
+                alt="Dalia — Owner of Dido Store"
                 style={{
                   width: "100%",
                   height: "auto",
@@ -1226,7 +1226,7 @@ export default function HomePage() {
             >
               <span>{language === "ar" ? "داليا (ديدو)" : "DALIA (DIDO)"}</span>
               <span style={{ opacity: 0.45 }}>•</span>
-              <span>{language === "ar" ? "مؤسسة البراند" : "FOUNDER"}</span>
+              <span>{language === "ar" ? "صاحبة المتجر" : "OWNER"}</span>
               <span style={{ opacity: 0.45 }}>•</span>
               <span>{language === "ar" ? "القاهرة" : "CAIRO"}</span>
             </div>

@@ -689,7 +689,7 @@ export default function AdminSettingsPage() {
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
             <User size={20} color="var(--color-accent)" />
             <h3 style={{ fontSize: "1.125rem", fontWeight: 600, color: "var(--color-text)", margin: 0 }}>
-              {isRTL ? "قسم قصة المؤسسة (داليا ديدو)" : "Founder & Brand Story Section"}
+              {isRTL ? "قسم صاحبة المتجر (داليا ديدو)" : "Store Owner & Brand Story Section"}
             </h3>
           </div>
 
@@ -697,7 +697,7 @@ export default function AdminSettingsPage() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px" }}>
               <div>
                 <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "6px" }}>
-                  {isRTL ? "اسم المؤسسة (بالإنجليزية)" : "Founder Name (English)"}
+                  {isRTL ? "اسم صاحبة المتجر (بالإنجليزية)" : "Owner Name (English)"}
                 </label>
                 <input
                   type="text"
@@ -708,7 +708,7 @@ export default function AdminSettingsPage() {
               </div>
               <div>
                 <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "6px" }}>
-                  {isRTL ? "اسم المؤسسة (بالعربية)" : "Founder Name (Arabic)"}
+                  {isRTL ? "اسم صاحبة المتجر (بالعربية)" : "Owner Name (Arabic)"}
                 </label>
                 <input
                   type="text"
@@ -722,7 +722,7 @@ export default function AdminSettingsPage() {
 
             <div>
               <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "6px" }}>
-                {isRTL ? "قصة البريد / السيرة الذاتية (بالإنجليزية)" : "Brand Story / Bio (English)"}
+                {isRTL ? "نبذة عن صاحبة المتجر (بالإنجليزية)" : "Owner Bio (English)"}
               </label>
               <textarea
                 rows={3}
@@ -734,7 +734,7 @@ export default function AdminSettingsPage() {
 
             <div>
               <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "6px" }}>
-                {isRTL ? "قصة البريد / السيرة الذاتية (بالعربية)" : "Brand Story / Bio (Arabic)"}
+                {isRTL ? "نبذة عن صاحبة المتجر (بالعربية)" : "Owner Bio (Arabic)"}
               </label>
               <textarea
                 rows={3}

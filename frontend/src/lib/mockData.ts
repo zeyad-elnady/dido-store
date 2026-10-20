@@ -291,8 +291,8 @@ export const MOCK_FOUNDER: FounderProfile = {
   company_name_ar: "متجر ديدو مصر",
   founder_name_en: "Dalia (Dido)",
   founder_name_ar: "داليا (ديدو)",
-  bio_en: "At just 20 years old, Dalia is the visionary founder and creative heart behind Dido Store Egypt. Driven by an innate passion for contemporary fashion and trend forecasting, she established Dido Store to eliminate the long-standing obstacles Egyptian women face with international orders—from foreign currency cards to customs duties and delayed shipping. Dalia personally curates every authentic SHEIN piece with uncompromising attention to silhouette, texture, and style, delivering world-class fashion straight to doors across all 27 governorates with transparent EGP pricing and trusted local payment methods.",
-  bio_ar: "في العشرين من عمرها، أسست داليا متجر ديدو ستور من قلب القاهرة انطلاقاً من شغف استثنائي بعالم الأزياء والموضة العصرية. أطلقت داليا البراند لإنهاء معاناة الفتيات في مصر مع تعقيدات الشحن الدولي والدفع بالعملات الأجنبية ورسوم الجمارك المرهقة. تختار داليا بنفسها كل قطعة أصلية من شي إن بعناية فائقة لتضمن أرقى معايير الجودة والأناقة، مع توفير تجربة تسوق محلية مريحة تشمل الدفع عبر إنستاباي وفودافون كاش، وعربون 50% فقط، وتوصيل مضمون لباب المنزل في جميع محافظات مصر.",
+  bio_en: "Dalia is the owner of Dido Store Egypt. She personally handpicks every authentic SHEIN piece with a refined eye for contemporary fashion, making international chic accessible to women across Egypt with transparent pricing and doorstep delivery.",
+  bio_ar: "داليا هي صاحبة متجر ديدو ستور والرؤية العصرية وراء كل قطعة. تختار بنفسها أرقى تصاميم شي إن الأصلية لتمنحكِ تجربة تسوق مريحة وأنيقة، مع دفع محلي سهل وتوصيل سريع لباب منزلكِ في جميع أنحاء مصر.",
   photo_path: "/dalia-founder.jpg",
 };
 
