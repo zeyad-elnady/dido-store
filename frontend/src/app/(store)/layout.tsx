@@ -37,6 +37,14 @@ function InstagramIcon({ size = 18 }: { size?: number }) {
   );
 }
 
+function TikTokIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.82 4.47 6.27 6.27 0 0 0 1.88-4.47V8.84a8.27 8.27 0 0 0 4.89 1.59V7c-.34 0-.68-.1-1-.31z" />
+    </svg>
+  );
+}
+
 function StoreHeaderAndContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -75,7 +83,15 @@ function StoreHeaderAndContent({ children }: { children: React.ReactNode }) {
 
   const whatsappNumber =
     settings.contact?.whatsapp_number?.replace(/\+/g, "").replace(/\s/g, "") ||
-    "201012345678";
+    "201023402591";
+
+  const instagramUrl =
+    settings.contact?.instagram_url ||
+    "https://www.instagram.com/bydido.studio?dlrf=ZmMyeW41cHBvd3Y5";
+
+  const tiktokUrl =
+    settings.contact?.tiktok_url ||
+    "https://www.tiktok.com/@didos.studio?_r=1&_t=ZS-9Aim7g6jSsB";
 
   return (
     <div
@@ -437,13 +453,15 @@ function StoreHeaderAndContent({ children }: { children: React.ReactNode }) {
           style={{
             maxWidth: "1280px",
             margin: "0 auto",
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            flexWrap: "wrap",
             gap: "48px",
           }}
         >
           {/* Brand */}
-          <div>
+          <div style={{ maxWidth: "460px" }}>
             <h3
               style={{
                 fontFamily: "'Playfair Display', serif",
@@ -459,56 +477,75 @@ function StoreHeaderAndContent({ children }: { children: React.ReactNode }) {
               style={{
                 fontSize: "0.9375rem",
                 lineHeight: 1.7,
-                maxWidth: "340px",
                 color: "rgba(255,255,255,0.75)",
                 marginBottom: "20px",
               }}
             >
               {t("footer_about_text")}
             </p>
-            <div style={{ display: "flex", gap: "14px" }}>
-              {settings.contact?.instagram_url && (
-                <a
-                  href={settings.contact.instagram_url}
-                  target="_blank"
-                  rel="noopener"
-                  style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "50%",
-                    backgroundColor: "rgba(255,255,255,0.08)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#FFFFFF",
-                    transition: "all 0.2s",
-                  }}
-                  aria-label="Instagram"
-                >
-                  <InstagramIcon size={18} />
-                </a>
-              )}
-              {settings.contact?.whatsapp_number && (
-                <a
-                  href={`https://wa.me/${whatsappNumber}`}
-                  target="_blank"
-                  rel="noopener"
-                  style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "50%",
-                    backgroundColor: "rgba(255,255,255,0.08)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#FFFFFF",
-                    transition: "all 0.2s",
-                  }}
-                  aria-label="WhatsApp"
-                >
-                  <Phone size={18} />
-                </a>
-              )}
+            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+              {/* Instagram */}
+              <a
+                href={instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  width: "42px",
+                  height: "42px",
+                  borderRadius: "50%",
+                  backgroundColor: "rgba(255,255,255,0.08)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#FFFFFF",
+                  transition: "all 0.2s",
+                }}
+                aria-label="Instagram"
+              >
+                <InstagramIcon size={20} />
+              </a>
+
+              {/* TikTok */}
+              <a
+                href={tiktokUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  width: "42px",
+                  height: "42px",
+                  borderRadius: "50%",
+                  backgroundColor: "rgba(255,255,255,0.08)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#FFFFFF",
+                  transition: "all 0.2s",
+                }}
+                aria-label="TikTok"
+              >
+                <TikTokIcon size={19} />
+              </a>
+
+              {/* WhatsApp */}
+              <a
+                href={`https://wa.me/${whatsappNumber}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  width: "42px",
+                  height: "42px",
+                  borderRadius: "50%",
+                  backgroundColor: "rgba(255,255,255,0.08)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#FFFFFF",
+                  transition: "all 0.2s",
+                }}
+                aria-label="WhatsApp"
+              >
+                <Phone size={19} />
+              </a>
             </div>
           </div>
 
@@ -547,46 +584,6 @@ function StoreHeaderAndContent({ children }: { children: React.ReactNode }) {
                   {link.label}
                 </Link>
               ))}
-              <Link
-                href="/admin/login"
-                style={{
-                  color: "var(--color-accent)",
-                  textDecoration: "none",
-                  fontSize: "0.875rem",
-                  marginTop: "6px",
-                }}
-              >
-                Staff Portal
-              </Link>
-            </div>
-          </div>
-
-          {/* Payment Methods Accepted */}
-          <div>
-            <h4
-              style={{
-                fontSize: "0.875rem",
-                fontWeight: 600,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                color: "#FFFFFF",
-                marginBottom: "20px",
-              }}
-            >
-              {t("footer_accepted_payment")}
-            </h4>
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px", fontSize: "0.875rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "rgba(255,255,255,0.85)" }}>
-                <span style={{ padding: "4px 8px", backgroundColor: "#3F20BA", borderRadius: "4px", fontSize: "0.75rem", fontWeight: 700, color: "#fff" }}>InstaPay</span>
-                <span>{settings.payment?.instapay_address || "didostore@instapay"}</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "rgba(255,255,255,0.85)" }}>
-                <span style={{ padding: "4px 8px", backgroundColor: "#E60000", borderRadius: "4px", fontSize: "0.75rem", fontWeight: 700, color: "#fff" }}>Vodafone Cash</span>
-                <span>{settings.payment?.vodafone_cash_number || "01012345678"}</span>
-              </div>
-              <p style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.5)", marginTop: "8px", lineHeight: 1.5 }}>
-                {t("feature_deposit_desc")}
-              </p>
             </div>
           </div>
         </div>

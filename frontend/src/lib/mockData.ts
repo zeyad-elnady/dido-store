@@ -263,21 +263,21 @@ export const MOCK_PRODUCTS: Product[] = [
 
 export const MOCK_SETTINGS: PublicSettings = {
   contact: {
-    whatsapp_number: "201012345678",
-    phone_number: "+20 10 1234 5678",
-    instagram_url: "https://instagram.com/didostore.eg",
-    tiktok_url: "https://tiktok.com/@didostore.eg",
+    whatsapp_number: "201023402591",
+    phone_number: "01023402591",
+    instagram_url: "https://www.instagram.com/bydido.studio?dlrf=ZmMyeW41cHBvd3Y5",
+    tiktok_url: "https://www.tiktok.com/@didos.studio?_r=1&_t=ZS-9Aim7g6jSsB",
     address: "New Cairo / Nasr City, Cairo, Egypt",
   },
   payment: {
     instapay_address: "didostore@instapay",
-    vodafone_cash_number: "01012345678",
+    vodafone_cash_number: "01023402591",
     telda_handle: "@didostore",
     deposit_percentage: "50",
   },
   social: {
-    instagram: "@didostore.eg",
-    tiktok: "@didostore.eg",
+    instagram: "@bydido.studio",
+    tiktok: "@didos.studio",
     facebook: "DidoStoreEgypt",
   },
 };

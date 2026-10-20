@@ -143,7 +143,7 @@ function OrderTrackingContent() {
   const statusIdx = order ? getStatusIndex(order.status) : 0;
   const whatsappNumber =
     MOCK_SETTINGS.contact?.whatsapp_number?.replace(/\+/g, "").replace(/\s/g, "") ||
-    "201012345678";
+    "201023402591";
 
   return (
     <div className="tracking-container" style={{ maxWidth: "1280px", margin: "0 auto", padding: "40px 24px 80px" }}>

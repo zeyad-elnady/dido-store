@@ -277,15 +277,15 @@ class DatabaseSeeder extends Seeder
         // ── Settings ────────────────────────────────────────────────
         $settings = [
             // Contact
-            ['key' => 'whatsapp_number', 'value' => '201012345678', 'group' => 'contact'],
-            ['key' => 'phone_number', 'value' => '01012345678', 'group' => 'contact'],
-            ['key' => 'instagram_url', 'value' => 'https://instagram.com/didostore', 'group' => 'contact'],
-            ['key' => 'tiktok_url', 'value' => 'https://tiktok.com/@didostore', 'group' => 'contact'],
+            ['key' => 'whatsapp_number', 'value' => '201023402591', 'group' => 'contact'],
+            ['key' => 'phone_number', 'value' => '01023402591', 'group' => 'contact'],
+            ['key' => 'instagram_url', 'value' => 'https://www.instagram.com/bydido.studio?dlrf=ZmMyeW41cHBvd3Y5', 'group' => 'contact'],
+            ['key' => 'tiktok_url', 'value' => 'https://www.tiktok.com/@didos.studio?_r=1&_t=ZS-9Aim7g6jSsB', 'group' => 'contact'],
 
             // Payment
             ['key' => 'instapay_account', 'value' => 'didostore@instapay', 'group' => 'payment'],
-            ['key' => 'vodafone_cash_number', 'value' => '01012345678', 'group' => 'payment'],
-            ['key' => 'telda_number', 'value' => '01012345678', 'group' => 'payment'],
+            ['key' => 'vodafone_cash_number', 'value' => '01023402591', 'group' => 'payment'],
+            ['key' => 'telda_number', 'value' => '01023402591', 'group' => 'payment'],
 
             // Banners
             ['key' => 'homepage_banners', 'value' => json_encode([
