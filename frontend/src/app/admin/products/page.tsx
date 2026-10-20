@@ -609,34 +609,78 @@ export default function AdminProductsPage() {
           <div
             style={{
               width: "100%",
-              maxWidth: "600px",
+              maxWidth: "680px",
               backgroundColor: "#FFFFFF",
               borderRadius: "16px",
               overflow: "hidden",
-              boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
-              maxHeight: "90vh",
+              boxShadow: "0 25px 60px rgba(0,0,0,0.35)",
+              maxHeight: "92vh",
               display: "flex",
               flexDirection: "column",
             }}
           >
-            <div
+            <form
+              onSubmit={handleSave}
               style={{
-                padding: "18px 24px",
-                borderBottom: "1px solid var(--color-border-light)",
                 display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
+                flexDirection: "column",
+                height: "100%",
+                maxHeight: "92vh",
+                overflow: "hidden",
               }}
             >
-              <h3 style={{ fontSize: "1.125rem", fontWeight: 700, margin: 0 }}>
-                {editingProduct ? "Edit Product Piece" : "Add New SHEIN Piece"}
-              </h3>
-              <button onClick={() => setIsModalOpen(false)} style={{ background: "none", border: "none", cursor: "pointer" }}>
-                <X size={20} />
-              </button>
-            </div>
+              {/* Fixed Header */}
+              <div
+                style={{
+                  padding: "16px 24px",
+                  borderBottom: "1px solid var(--color-border-light)",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexShrink: 0,
+                  backgroundColor: "#FFFFFF",
+                }}
+              >
+                <div>
+                  <h3 style={{ fontSize: "1.125rem", fontWeight: 700, margin: 0 }}>
+                    {editingProduct
+                      ? (isRTL ? "تعديل بيانات القطعة" : "Edit Product Piece")
+                      : (isRTL ? "إضافة قطعة جديدة" : "Add New SHEIN Piece")}
+                  </h3>
+                  {editingProduct && (
+                    <span style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
+                      ID: #{editingProduct.id} • {editingProduct.slug}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "6px",
+                    borderRadius: "50%",
+                    color: "var(--color-text-secondary)",
+                  }}
+                  aria-label="Close"
+                >
+                  <X size={20} />
+                </button>
+              </div>
 
-            <form onSubmit={handleSave} style={{ padding: "24px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "16px" }}>
+              {/* Scrollable Form Body */}
+              <div
+                style={{
+                  flex: 1,
+                  overflowY: "auto",
+                  padding: "24px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px",
+                }}
+              >
               <div>
                 <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "4px" }}>
                   Product Title (English) *
@@ -720,19 +764,19 @@ export default function AdminProductsPage() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <div>
                   <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "4px" }}>
-                    Sizes (comma separated)
+                    {isRTL ? "المقاسات (مفصولة بفاصلة)" : "Sizes (comma separated)"}
                   </label>
                   <input
                     type="text"
                     value={sizes}
                     onChange={(e) => setSizes(e.target.value)}
-                    placeholder="S, M, L, XL"
+                    placeholder="XS, S, M, L, XL, XXL"
                     style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--color-border)" }}
                   />
                 </div>
                 <div>
                   <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "4px" }}>
-                    Stock Quantity
+                    {isRTL ? "الكمية المتاحة (المخزون)" : "Stock Quantity"}
                   </label>
                   <input
                     type="number"
@@ -741,6 +785,79 @@ export default function AdminProductsPage() {
                     style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--color-border)" }}
                   />
                 </div>
+              </div>
+
+              {/* Colors (comma separated) */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                  <label style={{ fontSize: "0.8125rem", fontWeight: 600 }}>
+                    {isRTL ? "الألوان (مفصولة بفاصلة) *" : "Colors (comma separated) *"}
+                  </label>
+                  <span style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
+                    {isRTL ? "اختيار سريع للألوان:" : "Quick add colors:"}
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  required
+                  value={colors}
+                  onChange={(e) => setColors(e.target.value)}
+                  placeholder="Black, White, Beige, Blue, Red, Pink..."
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--color-border)", marginBottom: "6px" }}
+                />
+                {/* Quick Add Color Pills */}
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                  {["Black", "White", "Beige", "Blue", "Red", "Pink", "Green", "Brown", "Purple", "Gold", "Silver"].map((cName) => {
+                    const currentList = colors.split(",").map((s) => s.trim().toLowerCase());
+                    const isAdded = currentList.includes(cName.toLowerCase());
+                    return (
+                      <button
+                        key={cName}
+                        type="button"
+                        onClick={() => {
+                          if (isAdded) {
+                            const updated = colors
+                              .split(",")
+                              .map((s) => s.trim())
+                              .filter((s) => s.toLowerCase() !== cName.toLowerCase())
+                              .join(", ");
+                            setColors(updated);
+                          } else {
+                            const updated = colors.trim() ? `${colors.trim()}, ${cName}` : cName;
+                            setColors(updated);
+                          }
+                        }}
+                        style={{
+                          padding: "3px 10px",
+                          borderRadius: "14px",
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                          border: isAdded ? "1px solid var(--color-accent)" : "1px solid var(--color-border)",
+                          backgroundColor: isAdded ? "var(--color-accent-light)" : "#FFFFFF",
+                          color: isAdded ? "var(--color-accent-hover)" : "var(--color-text)",
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        {isAdded ? `✓ ${cName}` : `+ ${cName}`}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Description (Optional) */}
+              <div>
+                <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "4px" }}>
+                  {isRTL ? "وصف القطعة (اختياري)" : "Product Description (Optional)"}
+                </label>
+                <textarea
+                  rows={2}
+                  value={descEn}
+                  onChange={(e) => setDescEn(e.target.value)}
+                  placeholder={isRTL ? "اكتبي وصفاً مختصراً للقطعة وخامتها..." : "Piece description, fabric details..."}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--color-border)", fontSize: "0.875rem", resize: "vertical" }}
+                />
               </div>
 
               {/* Photo Upload Section */}
@@ -1148,36 +1265,69 @@ export default function AdminProductsPage() {
                 )}
               </div>
 
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "12px" }}>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  style={{ padding: "10px 18px", borderRadius: "8px", border: "1px solid var(--color-border)", background: "none", cursor: "pointer" }}
-                >
-                  {isRTL ? "إلغاء" : "Cancel"}
-                </button>
-                <button
-                  type="submit"
-                  disabled={isUploading}
-                  style={{
-                    padding: "10px 22px",
-                    borderRadius: "8px",
-                    border: "none",
-                    backgroundColor: "var(--color-accent)",
-                    color: "#fff",
-                    fontWeight: 600,
-                    cursor: isUploading ? "not-allowed" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    opacity: isUploading ? 0.7 : 1,
-                  }}
-                >
-                  {isUploading && <RefreshCw size={16} className="animate-spin" />}
-                  {isUploading
-                    ? (uploadProgress || (isRTL ? "جارٍ الحفظ والرفع..." : "Uploading & Saving..."))
-                    : (editingProduct ? (isRTL ? "تحديث القطعة" : "Update Piece") : (isRTL ? "حفظ القطعة" : "Save Piece"))}
-                </button>
+              </div>
+
+              {/* Sticky Footer (Always Visible at Bottom) */}
+              <div
+                style={{
+                  padding: "16px 24px",
+                  borderTop: "1px solid var(--color-border-light)",
+                  backgroundColor: "#FFFFFF",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexShrink: 0,
+                  boxShadow: "0 -4px 16px rgba(0,0,0,0.06)",
+                }}
+              >
+                <div style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)" }}>
+                  {gallery.length > 0 && (
+                    <span>
+                      {gallery.length} {isRTL ? "صور محددة" : "photos selected"}
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    style={{
+                      padding: "10px 18px",
+                      borderRadius: "8px",
+                      border: "1px solid var(--color-border)",
+                      background: "none",
+                      cursor: "pointer",
+                      fontSize: "0.875rem",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {isRTL ? "إلغاء" : "Cancel"}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isUploading}
+                    style={{
+                      padding: "11px 26px",
+                      borderRadius: "8px",
+                      border: "none",
+                      backgroundColor: "var(--color-accent)",
+                      color: "#fff",
+                      fontWeight: 700,
+                      fontSize: "0.9375rem",
+                      cursor: isUploading ? "not-allowed" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      boxShadow: "0 4px 14px rgba(196, 144, 124, 0.4)",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {isUploading && <RefreshCw size={16} className="animate-spin" />}
+                    {isUploading
+                      ? (uploadProgress || (isRTL ? "جارٍ الحفظ والرفع..." : "Uploading & Saving..."))
+                      : (editingProduct ? (isRTL ? "حفظ التعديلات" : "Save Changes") : (isRTL ? "حفظ القطعة" : "Save Piece"))}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
