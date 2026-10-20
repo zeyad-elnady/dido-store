@@ -56,6 +56,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/products/{product}', [ProductController::class, 'showById']);
         Route::patch('/products/{product}/stock', [ProductController::class, 'updateStock']);
         Route::delete('/product-images/{productImage}', [ProductController::class, 'deleteImage']);
+        Route::post('/upload', [ProductController::class, 'uploadImage']);
 
         // Customers
         Route::apiResource('customers', CustomerController::class);

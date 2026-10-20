@@ -109,6 +109,7 @@ class ProductController extends Controller
             'stock_quantity' => 'required|integer|min:0',
             'is_available' => 'nullable|boolean',
             'is_featured' => 'nullable|boolean',
+            'image_url' => 'nullable|string',
             'images' => 'nullable|array',
             'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
@@ -129,7 +130,7 @@ class ProductController extends Controller
 
         $product = Product::create($validated);
 
-        // Handle image uploads
+        // Handle image uploads or image_url
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $index => $image) {
                 $path = $image->store('products', 'public');
@@ -140,6 +141,13 @@ class ProductController extends Controller
                     'is_primary' => $index === 0,
                 ]);
             }
+        } elseif ($request->filled('image_url')) {
+            ProductImage::create([
+                'product_id' => $product->id,
+                'image_path' => $request->input('image_url'),
+                'sort_order' => 0,
+                'is_primary' => true,
+            ]);
         }
 
         return response()->json($product->load(['category', 'images']), 201);
@@ -166,6 +174,7 @@ class ProductController extends Controller
             'stock_quantity' => 'sometimes|integer|min:0',
             'is_available' => 'nullable|boolean',
             'is_featured' => 'nullable|boolean',
+            'image_url' => 'nullable|string',
             'images' => 'nullable|array',
             'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
@@ -187,7 +196,7 @@ class ProductController extends Controller
 
         $product->update($validated);
 
-        // Handle new image uploads
+        // Handle new image uploads or image_url
         if ($request->hasFile('images')) {
             $maxOrder = $product->images()->max('sort_order') ?? -1;
             foreach ($request->file('images') as $index => $image) {
@@ -199,9 +208,40 @@ class ProductController extends Controller
                     'is_primary' => $product->images()->count() === 0 && $index === 0,
                 ]);
             }
+        } elseif ($request->filled('image_url')) {
+            $existing = $product->images()->where('is_primary', true)->first();
+            if ($existing) {
+                $existing->update(['image_path' => $request->input('image_url')]);
+            } else {
+                ProductImage::create([
+                    'product_id' => $product->id,
+                    'image_path' => $request->input('image_url'),
+                    'sort_order' => 0,
+                    'is_primary' => true,
+                ]);
+            }
         }
 
         return response()->json($product->fresh(['category', 'images']));
+    }
+
+    /**
+     * Upload an image directly from device (admin).
+     */
+    public function uploadImage(Request $request): JsonResponse
+    {
+        $request->validate([
+            'image' => 'required|image|mimes:jpg,jpeg,png,webp,gif|max:10240',
+        ]);
+
+        $file = $request->file('image');
+        $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+        $path = $file->storeAs('products', $filename, 'public');
+
+        return response()->json([
+            'path' => $path,
+            'url' => '/storage/' . $path,
+        ]);
     }
 
     /**

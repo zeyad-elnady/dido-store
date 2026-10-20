@@ -47,7 +47,9 @@ export default api;
  */
 export function storageUrl(path: string | null | undefined): string {
   if (!path) return '/placeholder.svg';
-  if (path.startsWith('http')) return path;
+  if (path.startsWith('http') || path.startsWith('data:')) return path;
+  if (path.startsWith('/storage/')) return path;
+  if (path.startsWith('/')) return path;
   return `${API_URL}/storage/${path}`;
 }
 
