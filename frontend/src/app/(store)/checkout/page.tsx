@@ -581,6 +581,7 @@ export default function CheckoutPage() {
 
           {/* Order Summary Sidebar */}
           <div
+            className="checkout-summary-sticky"
             style={{
               backgroundColor: "#FFFFFF",
               borderRadius: "16px",
@@ -588,7 +589,8 @@ export default function CheckoutPage() {
               padding: "28px",
               boxShadow: "0 4px 16px rgba(0,0,0,0.03)",
               position: "sticky",
-              top: "90px",
+              top: "88px",
+              alignSelf: "flex-start",
             }}
           >
             <h3 style={{ fontSize: "1.125rem", fontWeight: 600, color: "var(--color-text)", marginBottom: "20px" }}>

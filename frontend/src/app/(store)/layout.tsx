@@ -102,7 +102,7 @@ function StoreHeaderAndContent({ children }: { children: React.ReactNode }) {
         backgroundColor: "var(--color-bg)",
         width: "100%",
         maxWidth: "100vw",
-        overflowX: "hidden",
+        overflowX: "clip",
       }}
     >
       {/* Top Announcement Bar */}
