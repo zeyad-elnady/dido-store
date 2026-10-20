@@ -33,7 +33,11 @@ export default function CheckoutPage() {
   const [whatsapp, setWhatsapp] = useState("");
   const [sameAsPhone, setSameAsPhone] = useState(true);
   const [governorate, setGovernorate] = useState("Cairo");
-  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [street, setStreet] = useState("");
+  const [building, setBuilding] = useState("");
+  const [apartment, setApartment] = useState("");
+  const [landmark, setLandmark] = useState("");
   const [sourcePlatform, setSourcePlatform] = useState<"instagram" | "tiktok" | "whatsapp">("instagram");
   const [platformUsername, setPlatformUsername] = useState("");
   const [notes, setNotes] = useState("");
@@ -52,8 +56,12 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!name.trim() || !phone.trim() || !address.trim()) {
-      setError(language === "ar" ? "يرجى استكمال جميع البيانات الإلزامية (الاسم، الهاتف، العنوان بالتفصيل)." : "Please complete all required fields (Name, Phone, Address).");
+    if (!name.trim() || !phone.trim() || !city.trim() || !street.trim() || !building.trim()) {
+      setError(
+        language === "ar"
+          ? "يرجى استكمال جميع البيانات الإلزامية (الاسم، الهاتف، المدينة/المنطقة، الشارع، ورقم العمارة)."
+          : "Please complete all required fields (Name, Phone, City/Area, Street, and Building Number)."
+      );
       return;
     }
 
@@ -61,6 +69,16 @@ export default function CheckoutPage() {
     setError(null);
 
     const effectiveWhatsapp = sameAsPhone ? phone : (whatsapp || phone);
+
+    const addressComponents = [
+      city.trim(),
+      street.trim(),
+      building.trim() ? (language === "ar" ? `عمارة ${building.trim()}` : `Bldg ${building.trim()}`) : "",
+      apartment.trim() ? (language === "ar" ? `شقة/دور ${apartment.trim()}` : `Apt/Floor ${apartment.trim()}`) : "",
+      landmark.trim() ? (language === "ar" ? `علامة مميزة: ${landmark.trim()}` : `Landmark: ${landmark.trim()}`) : "",
+    ].filter(Boolean).join("، ");
+
+    const formattedShippingAddress = `${governorate} — ${addressComponents}`;
 
     const payload = {
       customer: {
@@ -77,7 +95,7 @@ export default function CheckoutPage() {
         size: item.size,
         color: item.color,
       })),
-      shipping_address: `${governorate} — ${address}`,
+      shipping_address: formattedShippingAddress,
       notes,
     };
 
@@ -365,41 +383,131 @@ export default function CheckoutPage() {
               </h3>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+                {/* Governorate & City / District */}
+                <div className="checkout-two-col">
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, marginBottom: "6px" }}>
+                      {t("governorate")} <span style={{ color: "var(--color-danger)" }}>*</span>
+                    </label>
+                    <select
+                      value={governorate}
+                      onChange={(e) => setGovernorate(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        borderRadius: "8px",
+                        border: "1px solid var(--color-border)",
+                        fontSize: "0.9375rem",
+                        backgroundColor: "#FFFFFF",
+                        outline: "none",
+                      }}
+                    >
+                      {EGYPT_GOVERNORATES.map((gov) => (
+                        <option key={gov.value} value={gov.value}>
+                          {language === "ar" ? gov.label_ar : gov.label_en}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, marginBottom: "6px" }}>
+                      {t("city_district")} <span style={{ color: "var(--color-danger)" }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder={t("city_placeholder")}
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        borderRadius: "8px",
+                        border: "1px solid var(--color-border)",
+                        fontSize: "0.9375rem",
+                        outline: "none",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Street Name */}
                 <div>
                   <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, marginBottom: "6px" }}>
-                    {t("governorate")} <span style={{ color: "var(--color-danger)" }}>*</span>
+                    {t("street_name")} <span style={{ color: "var(--color-danger)" }}>*</span>
                   </label>
-                  <select
-                    value={governorate}
-                    onChange={(e) => setGovernorate(e.target.value)}
+                  <input
+                    type="text"
+                    required
+                    placeholder={t("street_placeholder")}
+                    value={street}
+                    onChange={(e) => setStreet(e.target.value)}
                     style={{
                       width: "100%",
                       padding: "12px 14px",
                       borderRadius: "8px",
                       border: "1px solid var(--color-border)",
                       fontSize: "0.9375rem",
-                      backgroundColor: "#FFFFFF",
                       outline: "none",
                     }}
-                  >
-                    {EGYPT_GOVERNORATES.map((gov) => (
-                      <option key={gov.value} value={gov.value}>
-                        {language === "ar" ? gov.label_ar : gov.label_en}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
+                {/* Building Number & Apartment / Floor */}
+                <div className="checkout-two-col">
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, marginBottom: "6px" }}>
+                      {t("building_no")} <span style={{ color: "var(--color-danger)" }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder={t("building_placeholder")}
+                      value={building}
+                      onChange={(e) => setBuilding(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        borderRadius: "8px",
+                        border: "1px solid var(--color-border)",
+                        fontSize: "0.9375rem",
+                        outline: "none",
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, marginBottom: "6px" }}>
+                      {t("apartment_floor")}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={t("apartment_placeholder")}
+                      value={apartment}
+                      onChange={(e) => setApartment(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        borderRadius: "8px",
+                        border: "1px solid var(--color-border)",
+                        fontSize: "0.9375rem",
+                        outline: "none",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Nearest Landmark */}
                 <div>
                   <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, marginBottom: "6px" }}>
-                    {t("shipping_address")} <span style={{ color: "var(--color-danger)" }}>*</span>
+                    {t("nearest_landmark")}
                   </label>
-                  <textarea
-                    required
-                    rows={3}
-                    placeholder={t("address_placeholder")}
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
+                  <input
+                    type="text"
+                    placeholder={t("landmark_placeholder")}
+                    value={landmark}
+                    onChange={(e) => setLandmark(e.target.value)}
                     style={{
                       width: "100%",
                       padding: "12px 14px",

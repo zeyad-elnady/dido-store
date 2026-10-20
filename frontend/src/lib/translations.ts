@@ -365,6 +365,46 @@ export const TRANSLATIONS: TranslationDictionary = {
     en: "Governorate",
     ar: "المحافظة",
   },
+  city_district: {
+    en: "City / Area / District",
+    ar: "المدينة / الحي / المنطقة",
+  },
+  city_placeholder: {
+    en: "e.g. Nasr City, New Cairo, Maadi...",
+    ar: "مثال: مدينة نصر، التجمع الخامس، المعادي...",
+  },
+  street_name: {
+    en: "Street Name",
+    ar: "اسم الشارع",
+  },
+  street_placeholder: {
+    en: "e.g. 90th Street, Abbas El Akkad...",
+    ar: "مثال: شارع التسعين، شارع عباس العقاد...",
+  },
+  building_no: {
+    en: "Building Number / Name",
+    ar: "رقم أو اسم العمارة / الفيلا",
+  },
+  building_placeholder: {
+    en: "e.g. Building 15 or Villa 4",
+    ar: "مثال: عمارة 15 أو فيلا 4",
+  },
+  apartment_floor: {
+    en: "Floor & Apartment",
+    ar: "الدور ورقم الشقة",
+  },
+  apartment_placeholder: {
+    en: "e.g. Floor 3, Apt 12",
+    ar: "مثال: الدور 3، شقة 12",
+  },
+  nearest_landmark: {
+    en: "Nearest Landmark (Optional)",
+    ar: "أقرب علامة مميزة (اختياري)",
+  },
+  landmark_placeholder: {
+    en: "e.g. Near El Ezaby Pharmacy, opposite the club...",
+    ar: "مثال: بجوار صيدلية العزبي، أمام النادي...",
+  },
   shipping_address: {
     en: "Detailed Delivery Address",
     ar: "العنوان بالتفصيل (الشارع، العمارة، الشقة)",
