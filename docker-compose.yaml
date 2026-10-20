@@ -95,6 +95,17 @@ services:
       retries: 3
     networks:
       - dido-network
+      - coolify
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
+      - "traefik.http.routers.dido-frontend-http.entrypoints=http"
+      - "traefik.http.routers.dido-frontend-http.rule=Host(`dido-studio.store`) || Host(`www.dido-studio.store`)"
+      - "traefik.http.routers.dido-frontend-https.entrypoints=https"
+      - "traefik.http.routers.dido-frontend-https.rule=Host(`dido-studio.store`) || Host(`www.dido-studio.store`)"
+      - "traefik.http.routers.dido-frontend-https.tls=true"
+      - "traefik.http.routers.dido-frontend-https.tls.certresolver=letsencrypt"
+      - "traefik.http.services.dido-frontend.loadbalancer.server.port=3000"
 
   phpmyadmin:
     image: phpmyadmin:5
@@ -122,3 +133,5 @@ volumes:
 networks:
   dido-network:
     name: dido-network
+  coolify:
+    external: true
