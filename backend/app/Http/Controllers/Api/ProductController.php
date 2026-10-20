@@ -112,6 +112,7 @@ class ProductController extends Controller
             'image_url' => 'nullable|string',
             'image_urls' => 'nullable|array',
             'image_urls.*' => 'string',
+            'images_data' => 'nullable|array',
             'primary_image' => 'nullable|string',
             'images' => 'nullable|array',
             'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
@@ -133,7 +134,7 @@ class ProductController extends Controller
 
         $product = Product::create($validated);
 
-        // Handle image uploads or image_url / image_urls
+        // Handle image uploads or images_data / image_urls / image_url
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $index => $image) {
                 $path = $image->store('products', 'public');
@@ -143,6 +144,34 @@ class ProductController extends Controller
                     'sort_order' => $index,
                     'is_primary' => $index === 0,
                 ]);
+            }
+        } elseif ($request->filled('images_data')) {
+            $imagesData = $request->input('images_data', []);
+            $primary = $request->input('primary_image');
+            $imgColors = [];
+            foreach ($imagesData as $index => $item) {
+                $url = is_array($item) ? ($item['url'] ?? '') : (string)$item;
+                $url = trim($url);
+                if (!$url) continue;
+                $color = is_array($item) && !empty($item['color']) ? trim($item['color']) : null;
+                if ($color) $imgColors[] = $color;
+                $isPrimary = is_array($item) && !empty($item['is_primary'])
+                    ? true
+                    : (($url === $primary) || ($primary === null && $index === 0));
+
+                ProductImage::create([
+                    'product_id' => $product->id,
+                    'image_path' => $url,
+                    'color' => $color,
+                    'sort_order' => $index,
+                    'is_primary' => $isPrimary,
+                ]);
+            }
+
+            if (!empty($imgColors)) {
+                $existingColors = $product->colors ?? [];
+                $mergedColors = array_values(array_unique(array_merge($imgColors, $existingColors)));
+                $product->update(['colors' => $mergedColors]);
             }
         } elseif ($request->filled('image_urls')) {
             $urls = array_values(array_filter(array_map('trim', $request->input('image_urls', []))));
@@ -191,6 +220,7 @@ class ProductController extends Controller
             'image_url' => 'nullable|string',
             'image_urls' => 'nullable|array',
             'image_urls.*' => 'string',
+            'images_data' => 'nullable|array',
             'primary_image' => 'nullable|string',
             'images' => 'nullable|array',
             'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
@@ -213,7 +243,7 @@ class ProductController extends Controller
 
         $product->update($validated);
 
-        // Handle new image uploads or image_url / image_urls
+        // Handle new image uploads or images_data / image_urls / image_url
         if ($request->hasFile('images')) {
             $maxOrder = $product->images()->max('sort_order') ?? -1;
             foreach ($request->file('images') as $index => $image) {
@@ -224,6 +254,55 @@ class ProductController extends Controller
                     'sort_order' => $maxOrder + $index + 1,
                     'is_primary' => $product->images()->count() === 0 && $index === 0,
                 ]);
+            }
+        } elseif ($request->has('images_data')) {
+            $imagesData = $request->input('images_data', []);
+            $urls = [];
+            foreach ($imagesData as $item) {
+                $url = is_array($item) ? ($item['url'] ?? '') : (string)$item;
+                $url = trim($url);
+                if ($url) $urls[] = $url;
+            }
+
+            $primary = $request->input('primary_image') ?? ($urls[0] ?? null);
+
+            // Delete images removed from the list
+            $product->images()->whereNotIn('image_path', $urls)->delete();
+
+            // Reorder, assign color and ensure primary status
+            $imgColors = [];
+            foreach ($imagesData as $index => $item) {
+                $url = is_array($item) ? ($item['url'] ?? '') : (string)$item;
+                $url = trim($url);
+                if (!$url) continue;
+                $color = is_array($item) && !empty($item['color']) ? trim($item['color']) : null;
+                if ($color) $imgColors[] = $color;
+                $isPrimary = is_array($item) && !empty($item['is_primary'])
+                    ? true
+                    : (($url === $primary) || ($primary === null && $index === 0));
+
+                $existing = $product->images()->where('image_path', $url)->first();
+                if ($existing) {
+                    $existing->update([
+                        'color' => $color,
+                        'sort_order' => $index,
+                        'is_primary' => $isPrimary,
+                    ]);
+                } else {
+                    ProductImage::create([
+                        'product_id' => $product->id,
+                        'image_path' => $url,
+                        'color' => $color,
+                        'sort_order' => $index,
+                        'is_primary' => $isPrimary,
+                    ]);
+                }
+            }
+
+            if (!empty($imgColors)) {
+                $existingColors = $product->colors ?? [];
+                $mergedColors = array_values(array_unique(array_merge($imgColors, $existingColors)));
+                $product->update(['colors' => $mergedColors]);
             }
         } elseif ($request->has('image_urls')) {
             $urls = array_values(array_filter(array_map('trim', $request->input('image_urls', []))));

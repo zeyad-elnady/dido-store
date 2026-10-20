@@ -187,13 +187,19 @@ export default function ProductDetailPage({
         const p = res.data?.data || res.data;
         if (p && (p.id || p.name_en)) {
           setProduct(p);
+          const primaryImgObj =
+            p.images?.find((img: any) => img.is_primary) ||
+            p.images?.[0];
           const primaryImg =
-            p.images?.find((img: any) => img.is_primary)?.image_path ||
-            p.images?.[0]?.image_path ||
+            primaryImgObj?.image_path ||
             "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800";
           setSelectedImage(primaryImg);
           if (p.sizes && p.sizes.length > 0) setSelectedSize(p.sizes[0]);
-          if (p.colors && p.colors.length > 0) setSelectedColor(p.colors[0]);
+          if (primaryImgObj?.color && primaryImgObj.color.trim()) {
+            setSelectedColor(primaryImgObj.color.trim());
+          } else if (p.colors && p.colors.length > 0) {
+            setSelectedColor(p.colors[0]);
+          }
         } else {
           const found = MOCK_PRODUCTS.find((item) => item.slug === slug);
           if (found) {
@@ -231,9 +237,36 @@ export default function ProductDetailPage({
 
   const handleSelectImage = (img: any, idx: number) => {
     setSelectedImage(img.image_path);
+    if (img.color && typeof img.color === "string" && img.color.trim()) {
+      const target = img.color.trim().toLowerCase();
+      const match = product?.colors?.find((c) => c.trim().toLowerCase() === target);
+      if (match) {
+        setSelectedColor(match);
+      } else {
+        setSelectedColor(img.color.trim());
+      }
+    }
     const el = document.getElementById(`thumbnail-${idx}`);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    }
+  };
+
+  const handleSelectColor = (colorName: string) => {
+    setSelectedColor(colorName);
+    if (images && images.length > 0) {
+      const target = colorName.trim().toLowerCase();
+      const matchedIdx = images.findIndex(
+        (img: any) => img.color && typeof img.color === "string" && img.color.trim().toLowerCase() === target
+      );
+      if (matchedIdx !== -1) {
+        const matched = images[matchedIdx];
+        setSelectedImage(matched.image_path);
+        const el = document.getElementById(`thumbnail-${matchedIdx}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+        }
+      }
     }
   };
 
@@ -866,7 +899,7 @@ export default function ProductDetailPage({
             </div>
           )}
 
-          {/* Color Selector */}
+          {/* Color Selector - Text Only */}
           {product.colors && product.colors.length > 0 && (
             <div>
               <div
@@ -881,34 +914,17 @@ export default function ProductDetailPage({
                   <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)" }}>
                     {t("select_color")}:
                   </span>
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      backgroundColor: "var(--color-bg-alt)",
-                      padding: "3px 10px",
-                      borderRadius: "14px",
-                      fontSize: "0.8125rem",
-                      fontWeight: 700,
-                      color: "var(--color-text)",
-                      border: "1px solid var(--color-border)",
-                    }}
-                  >
+                  {selectedColor && (
                     <span
                       style={{
-                        width: "11px",
-                        height: "11px",
-                        borderRadius: "50%",
-                        background: getLuxuryColorStyle(selectedColor).bg,
-                        border: getLuxuryColorStyle(selectedColor).border
-                          ? `1px solid ${getLuxuryColorStyle(selectedColor).border}`
-                          : "1px solid rgba(0,0,0,0.15)",
-                        display: "inline-block",
+                        fontSize: "0.875rem",
+                        fontWeight: 700,
+                        color: "var(--color-primary)",
                       }}
-                    />
-                    <span>{selectedColor}</span>
-                  </span>
+                    >
+                      {selectedColor}
+                    </span>
+                  )}
                 </div>
 
                 <span style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>
@@ -918,61 +934,34 @@ export default function ProductDetailPage({
 
               <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                 {product.colors.map((c) => {
-                  const styleInfo = getLuxuryColorStyle(c);
-                  const isSelected = selectedColor === c;
+                  const isSelected = selectedColor?.trim().toLowerCase() === c.trim().toLowerCase();
                   return (
                     <button
                       key={c}
-                      onClick={() => setSelectedColor(c)}
+                      type="button"
+                      onClick={() => handleSelectColor(c)}
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
-                        gap: "8px",
-                        padding: "8px 16px",
-                        borderRadius: "24px",
+                        justifyContent: "center",
+                        padding: "8px 18px",
+                        borderRadius: "20px",
                         border: isSelected
-                          ? "2px solid var(--color-accent)"
+                          ? "1.5px solid var(--color-primary, #171717)"
                           : "1px solid var(--color-border)",
-                        backgroundColor: isSelected
-                          ? "rgba(196, 144, 124, 0.08)"
-                          : "#FFFFFF",
-                        color: isSelected ? "var(--color-accent-hover)" : "var(--color-text)",
+                        backgroundColor: isSelected ? "var(--color-primary, #171717)" : "#FFFFFF",
+                        color: isSelected ? "#FFFFFF" : "var(--color-text)",
                         fontSize: "0.875rem",
-                        fontWeight: isSelected ? 700 : 500,
+                        fontWeight: isSelected ? 600 : 500,
                         cursor: "pointer",
-                        transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                        transition: "all 0.18s cubic-bezier(0.4, 0, 0.2, 1)",
                         boxShadow: isSelected
-                          ? "0 2px 8px rgba(196, 144, 124, 0.25)"
-                          : "0 1px 3px rgba(0,0,0,0.03)",
+                          ? "0 2px 8px rgba(0,0,0,0.15)"
+                          : "0 1px 2px rgba(0,0,0,0.02)",
                       }}
                       aria-label={`Select color ${c}`}
                     >
-                      {/* Color circle swatch */}
-                      <span
-                        style={{
-                          width: "18px",
-                          height: "18px",
-                          borderRadius: "50%",
-                          background: styleInfo.bg,
-                          border: styleInfo.border
-                            ? `1px solid ${styleInfo.border}`
-                            : "1px solid rgba(0,0,0,0.15)",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.1)",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {isSelected && (
-                          <Check
-                            size={11}
-                            color={styleInfo.isLight ? "#111111" : "#ffffff"}
-                            strokeWidth={3}
-                          />
-                        )}
-                      </span>
-                      <span>{c}</span>
+                      {c}
                     </button>
                   );
                 })}

@@ -30,6 +30,7 @@ interface GalleryImage {
   file?: File;
   previewUrl: string;
   isPrimary: boolean;
+  color?: string;
 }
 
 export default function AdminProductsPage() {
@@ -114,6 +115,7 @@ export default function AdminProductsPage() {
         file,
         previewUrl,
         isPrimary: false,
+        color: "",
       });
     }
 
@@ -140,6 +142,7 @@ export default function AdminProductsPage() {
       id: `url-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       previewUrl: trimmed,
       isPrimary: false,
+      color: "",
     };
     setGallery((prev) => {
       const hasPrimary = prev.some((img) => img.isPrimary);
@@ -150,6 +153,12 @@ export default function AdminProductsPage() {
       return updated;
     });
     setUrlInput("");
+  };
+
+  const handleUpdateImageColor = (id: string, color: string) => {
+    setGallery((prev) =>
+      prev.map((img) => (img.id === id ? { ...img, color } : img))
+    );
   };
 
   const handleSetPrimary = (id: string) => {
@@ -220,6 +229,7 @@ export default function AdminProductsPage() {
       id: `existing-${img.id || idx}`,
       previewUrl: img.image_path,
       isPrimary: !!img.is_primary || (idx === 0 && !hasExistingPrimary),
+      color: img.color || "",
     }));
     setGallery(existingImages);
     setUrlInput("");
@@ -234,6 +244,7 @@ export default function AdminProductsPage() {
     try {
       // 1. Upload new files from device to storage
       const finalImageUrls: string[] = [];
+      const finalImagesData: { url: string; color?: string; is_primary: boolean }[] = [];
       let finalPrimaryUrl = "";
 
       for (let i = 0; i < gallery.length; i++) {
@@ -257,6 +268,12 @@ export default function AdminProductsPage() {
         }
 
         finalImageUrls.push(url);
+        finalImagesData.push({
+          url,
+          color: item.color?.trim() || undefined,
+          is_primary: item.isPrimary,
+        });
+
         if (item.isPrimary) {
           finalPrimaryUrl = url;
         }
@@ -264,7 +281,20 @@ export default function AdminProductsPage() {
 
       if (!finalPrimaryUrl && finalImageUrls.length > 0) {
         finalPrimaryUrl = finalImageUrls[0];
+        if (finalImagesData.length > 0) {
+          finalImagesData[0].is_primary = true;
+        }
       }
+
+      // Collect colors from assigned photos and manual text input
+      const photoColors = gallery
+        .map((g) => g.color?.trim())
+        .filter((c): c is string => Boolean(c));
+      const textColors = colors
+        .split(",")
+        .map((c) => c.trim())
+        .filter(Boolean);
+      const combinedColors = Array.from(new Set([...photoColors, ...textColors]));
 
       setUploadProgress(isRTL ? "جارٍ حفظ بيانات القطعة في قاعدة البيانات..." : "Saving piece to database...");
 
@@ -277,9 +307,10 @@ export default function AdminProductsPage() {
         discount_price: discountPrice ? parseFloat(discountPrice) : null,
         cost_price: parseFloat(costPrice) || 0,
         sizes: sizes.split(",").map((s) => s.trim()).filter(Boolean),
-        colors: colors.split(",").map((c) => c.trim()).filter(Boolean),
+        colors: combinedColors.length > 0 ? combinedColors : ["Standard"],
         stock_quantity: parseInt(stockQuantity) || 0,
         image_urls: finalImageUrls,
+        images_data: finalImagesData,
         primary_image: finalPrimaryUrl || null,
         image_url: finalPrimaryUrl || (finalImageUrls[0] || null),
       };
@@ -787,63 +818,23 @@ export default function AdminProductsPage() {
                 </div>
               </div>
 
-              {/* Colors (comma separated) */}
+              {/* Colors */}
               <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                  <label style={{ fontSize: "0.8125rem", fontWeight: 600 }}>
-                    {isRTL ? "الألوان (مفصولة بفاصلة) *" : "Colors (comma separated) *"}
-                  </label>
-                  <span style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
-                    {isRTL ? "اختيار سريع للألوان:" : "Quick add colors:"}
-                  </span>
-                </div>
+                <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "4px" }}>
+                  {isRTL ? "ألوان القطعة" : "Product Colors"}
+                </label>
                 <input
                   type="text"
-                  required
                   value={colors}
                   onChange={(e) => setColors(e.target.value)}
-                  placeholder="Black, White, Beige, Blue, Red, Pink..."
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--color-border)", marginBottom: "6px" }}
+                  placeholder={isRTL ? "اكتبي الألوان هنا أو حددي لون كل صورة بالأسفل (Black, Red...)" : "Black, White, Beige, Blue, Red..."}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--color-border)", marginBottom: "4px" }}
                 />
-                {/* Quick Add Color Pills */}
-                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                  {["Black", "White", "Beige", "Blue", "Red", "Pink", "Green", "Brown", "Purple", "Gold", "Silver"].map((cName) => {
-                    const currentList = colors.split(",").map((s) => s.trim().toLowerCase());
-                    const isAdded = currentList.includes(cName.toLowerCase());
-                    return (
-                      <button
-                        key={cName}
-                        type="button"
-                        onClick={() => {
-                          if (isAdded) {
-                            const updated = colors
-                              .split(",")
-                              .map((s) => s.trim())
-                              .filter((s) => s.toLowerCase() !== cName.toLowerCase())
-                              .join(", ");
-                            setColors(updated);
-                          } else {
-                            const updated = colors.trim() ? `${colors.trim()}, ${cName}` : cName;
-                            setColors(updated);
-                          }
-                        }}
-                        style={{
-                          padding: "3px 10px",
-                          borderRadius: "14px",
-                          fontSize: "0.75rem",
-                          fontWeight: 600,
-                          border: isAdded ? "1px solid var(--color-accent)" : "1px solid var(--color-border)",
-                          backgroundColor: isAdded ? "var(--color-accent-light)" : "#FFFFFF",
-                          color: isAdded ? "var(--color-accent-hover)" : "var(--color-text)",
-                          cursor: "pointer",
-                          transition: "all 0.15s ease",
-                        }}
-                      >
-                        {isAdded ? `✓ ${cName}` : `+ ${cName}`}
-                      </button>
-                    );
-                  })}
-                </div>
+                <span style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", lineHeight: 1.4, display: "block" }}>
+                  {isRTL
+                    ? "✨ نصيحة: يمكنكِ كتابة اسم اللون مباشرة على كل صورة مرفوعة بالأسفل، وسيتم ربط اللون بالصورة وجمع الألوان تلقائياً!"
+                    : "✨ Tip: You can type the color name directly under each photo below; customers can click the color to see that photo!"}
+                </span>
               </div>
 
               {/* Description (Optional) */}
@@ -1089,8 +1080,8 @@ export default function AdminProductsPage() {
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))",
-                        gap: "10px",
+                        gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
+                        gap: "12px",
                       }}
                     >
                       {gallery.map((img, index) => (
@@ -1219,6 +1210,43 @@ export default function AdminProductsPage() {
                               </button>
                             </div>
                           </div>
+
+                          {/* Photo Color Input */}
+                          <div
+                            style={{
+                              padding: "6px 8px",
+                              backgroundColor: "#faf8f5",
+                              borderTop: "1px solid #efe8df",
+                            }}
+                          >
+                            <label
+                              style={{
+                                display: "block",
+                                fontSize: "0.6875rem",
+                                fontWeight: 700,
+                                color: "var(--color-primary)",
+                                marginBottom: "3px",
+                              }}
+                            >
+                              {isRTL ? "لون الصورة:" : "Photo Color:"}
+                            </label>
+                            <input
+                              type="text"
+                              value={img.color || ""}
+                              onChange={(e) => handleUpdateImageColor(img.id, e.target.value)}
+                              placeholder={isRTL ? "مثال: Red أو أسود" : "e.g. Red, Blue, Black"}
+                              style={{
+                                width: "100%",
+                                padding: "4px 8px",
+                                fontSize: "0.75rem",
+                                borderRadius: "6px",
+                                border: "1px solid var(--color-border)",
+                                backgroundColor: "#ffffff",
+                                color: "var(--color-text)",
+                                boxSizing: "border-box",
+                              }}
+                            />
+                          </div>
                         </div>
                       ))}
 
@@ -1226,7 +1254,7 @@ export default function AdminProductsPage() {
                       <div
                         onClick={() => fileInputRef.current?.click()}
                         style={{
-                          height: "152px",
+                          minHeight: "190px",
                           borderRadius: "10px",
                           border: "2px dashed #d6cbbf",
                           backgroundColor: "#fff",

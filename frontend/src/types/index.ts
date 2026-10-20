@@ -17,6 +17,7 @@ export interface ProductImage {
   id: number;
   product_id: number;
   image_path: string;
+  color?: string | null;
   sort_order: number;
   is_primary: boolean;
 }
