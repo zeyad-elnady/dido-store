@@ -46,6 +46,7 @@ Route::prefix('v1')->group(function () {
         // Auth
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
+        Route::put('/profile', [AuthController::class, 'updateProfile']);
 
         // Categories
         Route::apiResource('categories', CategoryController::class)->except(['index', 'show']);

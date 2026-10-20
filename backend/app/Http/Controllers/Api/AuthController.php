@@ -58,4 +58,42 @@ class AuthController extends Controller
     {
         return response()->json($request->user());
     }
+
+    /**
+     * Update current authenticated admin profile (name, email, password).
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => 'sometimes|nullable|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'current_password' => 'nullable|string',
+            'new_password' => 'nullable|string|min:6',
+        ]);
+
+        // If new password is being set, verify current password
+        if (!empty($validated['new_password'])) {
+            if (empty($validated['current_password']) || !Hash::check($validated['current_password'], $user->password)) {
+                throw ValidationException::withMessages([
+                    'current_password' => ['The current password is incorrect.'],
+                ]);
+            }
+            $user->password = Hash::make($validated['new_password']);
+        }
+
+        $user->email = $validated['email'];
+        if (isset($validated['name'])) {
+            $user->name = $validated['name'];
+        }
+        $user->save();
+
+        return response()->json([
+            'message' => 'Profile updated successfully.',
+            'user' => $user->fresh(),
+        ]);
+    }
 }
+

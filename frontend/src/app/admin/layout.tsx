@@ -23,6 +23,7 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import api from "@/lib/api";
 
 const SIDEBAR_ITEMS = [
   { href: "/admin/dashboard", label_en: "Dashboard", label_ar: "لوحة التحكم", icon: LayoutDashboard },
@@ -39,10 +40,13 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { language, toggleLanguage, isRTL } = useLanguage();
+  const isLoginPage = pathname === "/admin/login";
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const isLoginPage = pathname === "/admin/login";
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(!isLoginPage);
+  const [adminUser, setAdminUser] = useState<{ id?: number; name?: string; email?: string } | null>(null);
 
   useEffect(() => {
     // Restore sidebar collapse state
@@ -55,14 +59,58 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // If not logged in and not on login page, redirect to login
-    if (!isLoginPage && typeof window !== "undefined") {
-      const token = localStorage.getItem("admin_token");
-      if (!token && !localStorage.getItem("admin_demo")) {
-        localStorage.setItem("admin_demo", "true");
-      }
+    if (isLoginPage) {
+      setIsCheckingAuth(false);
+      setIsAuthenticated(true);
+      return;
     }
-  }, [isLoginPage]);
+
+    if (typeof window === "undefined") return;
+
+    const token = localStorage.getItem("admin_token");
+    // Strictly reject missing or legacy fake demo tokens
+    if (!token || token === "demo-token-12345") {
+      localStorage.removeItem("admin_token");
+      localStorage.removeItem("admin_demo");
+      localStorage.removeItem("admin_user");
+      setIsAuthenticated(false);
+      setIsCheckingAuth(false);
+      router.replace("/admin/login");
+      return;
+    }
+
+    // Try reading cached admin_user for instant display
+    try {
+      const cached = localStorage.getItem("admin_user");
+      if (cached) setAdminUser(JSON.parse(cached));
+    } catch {}
+
+    // Verify token with backend /admin/me
+    api
+      .get("/admin/me")
+      .then((res) => {
+        if (res.data) {
+          setAdminUser(res.data);
+          localStorage.setItem("admin_user", JSON.stringify(res.data));
+        }
+        setIsAuthenticated(true);
+      })
+      .catch((err) => {
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          localStorage.removeItem("admin_token");
+          localStorage.removeItem("admin_demo");
+          localStorage.removeItem("admin_user");
+          setIsAuthenticated(false);
+          router.replace("/admin/login");
+        } else {
+          // If network hiccup but token is present, allow access
+          setIsAuthenticated(true);
+        }
+      })
+      .finally(() => {
+        setIsCheckingAuth(false);
+      });
+  }, [isLoginPage, router]);
 
   const toggleSidebar = () => {
     if (typeof window !== "undefined" && window.innerWidth <= 900) {
@@ -76,16 +124,62 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await api.post("/admin/logout");
+    } catch {}
     if (typeof window !== "undefined") {
       localStorage.removeItem("admin_token");
       localStorage.removeItem("admin_demo");
+      localStorage.removeItem("admin_user");
+      setIsAuthenticated(false);
       router.push("/admin/login");
     }
   };
 
   if (isLoginPage) {
     return <>{children}</>;
+  }
+
+  // Strict Auth Guard screen: never flash dashboard to unauthenticated users
+  if (isCheckingAuth || !isAuthenticated) {
+    return (
+      <div
+        dir={isRTL ? "rtl" : "ltr"}
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#18181A",
+          color: "#FFFFFF",
+          gap: "16px",
+          fontFamily: isRTL ? "'Cairo', -apple-system, BlinkMacSystemFont, sans-serif" : "inherit",
+        }}
+      >
+        <div
+          style={{
+            width: "52px",
+            height: "52px",
+            borderRadius: "14px",
+            backgroundColor: "var(--color-accent)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#FFFFFF",
+            fontWeight: 800,
+            fontSize: "1.4rem",
+            boxShadow: "0 0 30px rgba(196, 144, 124, 0.4)",
+          }}
+        >
+          D
+        </div>
+        <div style={{ fontSize: "0.9375rem", color: "rgba(255, 255, 255, 0.8)", fontWeight: 500 }}>
+          {isRTL ? "جارٍ التحقق من صلاحيات الدخول..." : "Authenticating staff access..."}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -382,7 +476,17 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             </button>
 
             {/* Admin Avatar Profile */}
-            <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
+            <Link
+              href="/admin/settings"
+              title={isRTL ? "تعديل الحساب وكلمة المرور" : "Edit Account & Password"}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "9px",
+                textDecoration: "none",
+                cursor: "pointer",
+              }}
+            >
               <div
                 style={{
                   width: "36px",
@@ -398,17 +502,17 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                   flexShrink: 0,
                 }}
               >
-                AD
+                {adminUser?.name ? adminUser.name.slice(0, 2).toUpperCase() : "AD"}
               </div>
               <div className="hide-mobile">
                 <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)" }}>
-                  {language === "ar" ? "مدير النظام" : "Admin Manager"}
+                  {adminUser?.name || (language === "ar" ? "مدير النظام" : "Admin Manager")}
                 </div>
                 <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>
-                  {language === "ar" ? "العمليات والطلبات" : "Operations"}
+                  {adminUser?.email || (language === "ar" ? "العمليات والطلبات" : "Operations")}
                 </div>
               </div>
-            </div>
+            </Link>
           </div>
         </header>
 
