@@ -41,7 +41,7 @@ export default function AdminLoginPage() {
         err?.response?.data?.errors?.password?.[0] ||
         err?.response?.data?.message;
 
-      if (serverMsg) {
+      if (serverMsg && serverMsg !== "Server Error") {
         setError(serverMsg);
       } else {
         setError(

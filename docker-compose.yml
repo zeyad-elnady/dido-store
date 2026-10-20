@@ -48,8 +48,6 @@ services:
       DB_DATABASE: ${DB_DATABASE:-dido_store}
       DB_USERNAME: ${DB_USERNAME:-dido_user}
       DB_PASSWORD: ${DB_PASSWORD:-dido_secret_password}
-      SANCTUM_STATEFUL_DOMAINS: "localhost:3000,localhost,dido-studio.store,www.dido-studio.store,152.239.116.172"
-      SESSION_DOMAIN: ".dido-studio.store"
     volumes:
       - backend_storage:/var/www/html/storage/app/public
     networks:
