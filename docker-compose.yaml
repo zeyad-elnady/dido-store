@@ -5,6 +5,7 @@ services:
     image: mysql:8.0
     container_name: dido-db
     restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_secret_password}
       MYSQL_DATABASE: ${DB_DATABASE:-dido_store}
@@ -14,7 +15,6 @@ services:
       - "${DB_PORT:-3307}:3306"
     volumes:
       - db_data:/var/lib/mysql
-      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-root_secret_password}"]
       interval: 10s
@@ -54,14 +54,14 @@ services:
       - dido-network
 
   nginx:
-    image: nginx:alpine
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
     container_name: dido-nginx
     restart: unless-stopped
     ports:
       - "${API_PORT:-8002}:80"
     volumes:
-      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
-      - ./backend/public:/var/www/html/public:ro
       - backend_storage:/var/www/html/storage/app/public:ro
     depends_on:
       - backend
