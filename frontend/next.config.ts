@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
     },
   },
   async rewrites() {
-    const backendUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+    const backendUrl = process.env.INTERNAL_API_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:8001' : 'http://nginx:80');
     return [
       {
         source: '/api/:path*',
