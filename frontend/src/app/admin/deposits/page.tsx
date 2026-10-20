@@ -23,76 +23,21 @@ export default function AdminDepositsPage() {
   const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Extract all deposits from mock orders as fallback
-  const initialMockDeposits: Deposit[] = [
-    {
-      id: 1,
-      order_id: 1,
-      customer_id: 1,
-      amount: 1500,
-      method: "instapay",
-      transfer_date: "2026-03-15 14:30:00",
-      screenshot_path: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=800",
-      status: "verified",
-      admin_note: "InstaPay transfer verified into CIB account",
-      verified_by: 1,
-      verified_at: "2026-03-15 15:00:00",
-      created_at: "2026-03-15 14:35:00",
-      order: MOCK_ORDERS[0],
-      customer: MOCK_ORDERS[0].customer,
-    },
-    {
-      id: 2,
-      order_id: 2,
-      customer_id: 2,
-      amount: 1000,
-      method: "vodafone_cash",
-      transfer_date: "2026-03-10 18:00:00",
-      screenshot_path: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=800",
-      status: "verified",
-      admin_note: "VF Cash wallet balance received",
-      verified_by: 1,
-      verified_at: "2026-03-10 18:30:00",
-      created_at: "2026-03-10 18:05:00",
-      order: MOCK_ORDERS[1],
-      customer: MOCK_ORDERS[1].customer,
-    },
-    {
-      id: 3,
-      order_id: 3,
-      customer_id: 3,
-      amount: 950,
-      method: "instapay",
-      transfer_date: "2026-03-18 11:20:00",
-      screenshot_path: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=800",
-      status: "pending",
-      admin_note: null,
-      verified_by: null,
-      verified_at: null,
-      created_at: "2026-03-18 11:25:00",
-      order: {
-        ...MOCK_ORDERS[0],
-        id: 3,
-        order_number: "DS-2026-1003",
-        customer: { id: 3, name: "Salma Fouad", phone: "01099887766", whatsapp_number: "01099887766", tiktok_username: null, instagram_username: "@salma.f", source_platform: "instagram" },
-      },
-      customer: { id: 3, name: "Salma Fouad", phone: "01099887766", whatsapp_number: "01099887766", tiktok_username: null, instagram_username: "@salma.f", source_platform: "instagram" },
-    },
-  ];
-
   const fetchDeposits = () => {
     setLoading(true);
     api
       .get("/admin/deposits")
       .then((res) => {
-        if (res.data?.data && res.data.data.length > 0) {
+        if (res.data?.data) {
           setDeposits(res.data.data);
+        } else if (Array.isArray(res.data)) {
+          setDeposits(res.data);
         } else {
-          setDeposits(initialMockDeposits);
+          setDeposits([]);
         }
       })
       .catch(() => {
-        setDeposits(initialMockDeposits);
+        setDeposits([]);
       })
       .finally(() => {
         setLoading(false);

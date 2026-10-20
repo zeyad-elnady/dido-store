@@ -9,48 +9,7 @@ import { useLanguage } from "@/context/LanguageContext";
 export default function AdminCustomersPage() {
   const { language, isRTL } = useLanguage();
 
-  const [customers, setCustomers] = useState<Customer[]>([
-    {
-      id: 1,
-      name: "Nouran El-Shazly",
-      phone: "01001234567",
-      whatsapp_number: "01001234567",
-      tiktok_username: null,
-      instagram_username: "@nouran.shazly",
-      source_platform: "instagram",
-      orders_count: 3,
-    },
-    {
-      id: 2,
-      name: "Mariam Mansour",
-      phone: "01123456789",
-      whatsapp_number: "01123456789",
-      tiktok_username: "@mariam.m",
-      instagram_username: null,
-      source_platform: "tiktok",
-      orders_count: 2,
-    },
-    {
-      id: 3,
-      name: "Salma Fouad",
-      phone: "01099887766",
-      whatsapp_number: "01099887766",
-      tiktok_username: null,
-      instagram_username: "@salma.f",
-      source_platform: "instagram",
-      orders_count: 1,
-    },
-    {
-      id: 4,
-      name: "Dina Abdelrahman",
-      phone: "01234567890",
-      whatsapp_number: "01234567890",
-      tiktok_username: null,
-      instagram_username: null,
-      source_platform: "whatsapp",
-      orders_count: 4,
-    },
-  ]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
 
   const [platformFilter, setPlatformFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -65,11 +24,17 @@ export default function AdminCustomersPage() {
     api
       .get("/admin/customers")
       .then((res) => {
-        if (res.data?.data && res.data.data.length > 0) {
+        if (res.data?.data) {
           setCustomers(res.data.data);
+        } else if (Array.isArray(res.data)) {
+          setCustomers(res.data);
+        } else {
+          setCustomers([]);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        setCustomers([]);
+      });
   }, []);
 
   const handleAdd = async (e: React.FormEvent) => {

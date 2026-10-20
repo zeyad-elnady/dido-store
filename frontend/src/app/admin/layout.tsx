@@ -187,7 +187,9 @@ function AdminShell({ children }: { children: React.ReactNode }) {
       dir={isRTL ? "rtl" : "ltr"}
       style={{
         display: "flex",
-        minHeight: "100vh",
+        height: "100vh",
+        maxHeight: "100vh",
+        overflow: "hidden",
         backgroundColor: "var(--admin-bg)",
         fontFamily: isRTL ? "'Cairo', -apple-system, BlinkMacSystemFont, sans-serif" : "inherit",
       }}
@@ -204,9 +206,8 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           borderInlineEnd: "1px solid rgba(255,255,255,0.06)",
           transition: "width 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
           overflow: "hidden",
-          position: "sticky",
-          top: 0,
           height: "100vh",
+          maxHeight: "100vh",
           zIndex: 30,
         }}
         className="admin-sidebar-desktop"
@@ -279,8 +280,10 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
         {/* Nav Links */}
         <nav
+          className="admin-sidebar-nav"
           style={{
             flex: 1,
+            minHeight: 0,
             padding: isCollapsed ? "16px 8px" : "18px 14px",
             display: "flex",
             flexDirection: "column",
@@ -383,7 +386,17 @@ function AdminShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ── Main Layout Container ───────────────────────────────────── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
+          height: "100vh",
+          maxHeight: "100vh",
+          overflow: "hidden",
+        }}
+      >
         {/* Top Header */}
         <header
           style={{
@@ -396,8 +409,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             padding: "0 24px",
             boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
             gap: "14px",
-            position: "sticky",
-            top: 0,
+            flexShrink: 0,
             zIndex: 20,
           }}
         >
@@ -517,7 +529,15 @@ function AdminShell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Content Area */}
-        <main className="admin-main-content" style={{ flex: 1, padding: "28px", overflowY: "auto" }}>
+        <main
+          className="admin-main-content"
+          style={{
+            flex: 1,
+            minHeight: 0,
+            padding: "28px",
+            overflowY: "auto",
+          }}
+        >
           {children}
         </main>
       </div>
@@ -534,15 +554,18 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             style={{
               position: "relative",
               width: "260px",
+              height: "100%",
+              maxHeight: "100vh",
               backgroundColor: "var(--admin-sidebar)",
               color: "#FFFFFF",
               display: "flex",
               flexDirection: "column",
+              overflow: "hidden",
               zIndex: 10,
               boxShadow: "0 0 30px rgba(0,0,0,0.4)",
             }}
           >
-            <div style={{ height: "70px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+            <div style={{ height: "70px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: "var(--color-accent)", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFFFFF", fontWeight: 700 }}>
                   D
@@ -559,7 +582,18 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               </button>
             </div>
 
-            <nav style={{ flex: 1, padding: "16px", display: "flex", flexDirection: "column", gap: "6px", overflowY: "auto" }}>
+            <nav
+              className="admin-sidebar-nav"
+              style={{
+                flex: 1,
+                minHeight: 0,
+                padding: "16px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "6px",
+                overflowY: "auto",
+              }}
+            >
               {SIDEBAR_ITEMS.map((item) => (
                 <Link
                   key={item.href}
@@ -584,7 +618,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               ))}
             </nav>
 
-            <div style={{ padding: "16px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+            <div style={{ padding: "16px", borderTop: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
               <Link
                 href="/"
                 target="_blank"
@@ -629,6 +663,32 @@ function AdminShell({ children }: { children: React.ReactNode }) {
       )}
 
       <style jsx global>{`
+        .admin-sidebar-nav::-webkit-scrollbar {
+          width: 5px;
+        }
+        .admin-sidebar-nav::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .admin-sidebar-nav::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.15);
+          border-radius: 4px;
+        }
+        .admin-sidebar-nav::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.3);
+        }
+        .admin-main-content::-webkit-scrollbar {
+          width: 6px;
+        }
+        .admin-main-content::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .admin-main-content::-webkit-scrollbar-thumb {
+          background: rgba(0, 0, 0, 0.15);
+          border-radius: 4px;
+        }
+        .admin-main-content::-webkit-scrollbar-thumb:hover {
+          background: rgba(0, 0, 0, 0.25);
+        }
         @media (max-width: 900px) {
           .admin-sidebar-desktop {
             display: none !important;

@@ -46,7 +46,7 @@ interface OrderItemDraft {
 
 export default function AdminOrdersPage() {
   const { language, isRTL } = useLanguage();
-  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
   const [activeStatus, setActiveStatus] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -75,12 +75,16 @@ export default function AdminOrdersPage() {
     api
       .get("/admin/orders")
       .then((res) => {
-        if (res.data?.data && res.data.data.length > 0) {
+        if (res.data?.data) {
           setOrders(res.data.data);
+        } else if (Array.isArray(res.data)) {
+          setOrders(res.data);
+        } else {
+          setOrders([]);
         }
       })
       .catch(() => {
-        // Fallback to mock orders
+        setOrders([]);
       })
       .finally(() => {
         setLoading(false);

@@ -2,13 +2,9 @@
 
 import { useEffect, useState } from "react";
 import {
-  BarChart3,
   TrendingUp,
   CreditCard,
-  DollarSign,
-  Package,
-  Layers,
-  Users,
+  ShoppingBag,
   Percent,
 } from "lucide-react";
 import api, { formatPrice } from "@/lib/api";
@@ -17,46 +13,19 @@ import { Analytics } from "@/types";
 export default function AdminAnalyticsPage() {
   const [data, setData] = useState<Analytics>({
     kpis: {
-      total_orders: 45,
-      total_revenue: 86400,
-      total_cost: 44200,
-      net_profit: 42200,
-      total_customs_fees: 3850,
-      total_deposits: 43200,
-      outstanding_balances: 43200,
+      total_orders: 0,
+      total_revenue: 0,
+      total_cost: 0,
+      net_profit: 0,
+      total_customs_fees: 0,
+      total_deposits: 0,
+      outstanding_balances: 0,
     },
-    orders_by_status: {
-      pending: 3,
-      confirmed: 6,
-      ordered_from_shein: 8,
-      shipped: 7,
-      delivered: 21,
-    },
-    orders_over_time: [
-      { date: "Mar 1", count: 4 },
-      { date: "Mar 5", count: 7 },
-      { date: "Mar 10", count: 9 },
-      { date: "Mar 15", count: 12 },
-      { date: "Mar 20", count: 13 },
-    ],
-    revenue_vs_profit: [
-      { date: "Week 1", revenue: 16500, profit: 8200 },
-      { date: "Week 2", revenue: 22400, profit: 11100 },
-      { date: "Week 3", revenue: 26100, profit: 12800 },
-      { date: "Week 4", revenue: 21400, profit: 10100 },
-    ],
-    best_selling_products: [
-      { product_id: 1, product_name: "SHEIN Pleated Satin Midi Dress", total_sold: 16, total_revenue: 19040 },
-      { product_id: 2, product_name: "SHEIN MOTF Double-Breasted Blazer", total_sold: 11, total_revenue: 17050 },
-      { product_id: 5, product_name: "SHEIN Modest Linen Kimono Set", total_sold: 9, total_revenue: 15210 },
-      { product_id: 3, product_name: "SHEIN Bohemian Maxi Dress", total_sold: 8, total_revenue: 10800 },
-    ],
-    best_categories: [
-      { id: 1, name_en: "Dresses & Gowns", total_sold: 24, total_revenue: 29840 },
-      { id: 2, name_en: "Blazers & Co-ords", total_sold: 14, total_revenue: 21700 },
-      { id: 4, name_en: "Modest Fashion & Abayas", total_sold: 9, total_revenue: 15210 },
-      { id: 3, name_en: "Tops & Blouses", total_sold: 8, total_revenue: 5920 },
-    ],
+    orders_by_status: {},
+    orders_over_time: [],
+    revenue_vs_profit: [],
+    best_selling_products: [],
+    best_categories: [],
   });
 
   useEffect(() => {
@@ -67,6 +36,13 @@ export default function AdminAnalyticsPage() {
       })
       .catch(() => {});
   }, []);
+
+  const totalOrders = data.kpis.total_orders || 0;
+  const completedOrders = data.orders_by_status?.delivered || 0;
+  const profitMargin =
+    data.kpis.total_revenue > 0
+      ? Math.round((data.kpis.net_profit / data.kpis.total_revenue) * 100)
+      : 0;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
@@ -93,7 +69,9 @@ export default function AdminAnalyticsPage() {
           <div style={{ fontSize: "1.5rem", fontWeight: 700, marginTop: "6px", color: "var(--color-text)" }}>
             {formatPrice(data.kpis.total_revenue)}
           </div>
-          <span style={{ fontSize: "0.75rem", color: "#059669", fontWeight: 600 }}>45 Completed Orders</span>
+          <span style={{ fontSize: "0.75rem", color: "#059669", fontWeight: 600 }}>
+            {completedOrders} Completed Orders
+          </span>
         </div>
 
         <div style={{ backgroundColor: "#FFFFFF", padding: "20px", borderRadius: "12px", border: "1px solid var(--color-border-light)" }}>
@@ -109,7 +87,9 @@ export default function AdminAnalyticsPage() {
           <div style={{ fontSize: "1.5rem", fontWeight: 700, marginTop: "6px", color: "#059669" }}>
             {formatPrice(data.kpis.net_profit)}
           </div>
-          <span style={{ fontSize: "0.75rem", color: "#059669", fontWeight: 600 }}>~48% Profit Margin</span>
+          <span style={{ fontSize: "0.75rem", color: "#059669", fontWeight: 600 }}>
+            {profitMargin}% Profit Margin
+          </span>
         </div>
 
         <div style={{ backgroundColor: "#FFFFFF", padding: "20px", borderRadius: "12px", border: "1px solid var(--color-border-light)" }}>
@@ -134,44 +114,51 @@ export default function AdminAnalyticsPage() {
           }}
         >
           <h3 style={{ fontSize: "1.0625rem", fontWeight: 600, color: "var(--color-text)", marginBottom: "20px" }}>
-            Top Selling SHEIN Pieces
+            Top Selling Pieces
           </h3>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            {data.best_selling_products.map((item, idx) => (
-              <div key={item.product_id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <div
-                    style={{
-                      width: "28px",
-                      height: "28px",
-                      borderRadius: "6px",
-                      backgroundColor: "var(--color-bg-alt)",
-                      color: "var(--color-text)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontWeight: 700,
-                      fontSize: "0.8125rem",
-                    }}
-                  >
-                    #{idx + 1}
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: "0.875rem", color: "var(--color-text)" }}>
-                      {item.product_name}
-                    </div>
-                    <div style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
-                      {item.total_sold} units ordered
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ fontWeight: 700, fontSize: "0.9375rem", color: "var(--color-text)" }}>
-                  {formatPrice(item.total_revenue)}
-                </div>
+            {data.best_selling_products.length === 0 ? (
+              <div style={{ padding: "32px 16px", textAlign: "center", color: "var(--color-text-muted)" }}>
+                <ShoppingBag size={28} style={{ margin: "0 auto 8px", opacity: 0.4 }} />
+                <div style={{ fontSize: "0.875rem" }}>No sales recorded yet.</div>
               </div>
-            ))}
+            ) : (
+              data.best_selling_products.map((item, idx) => (
+                <div key={item.product_id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div
+                      style={{
+                        width: "28px",
+                        height: "28px",
+                        borderRadius: "6px",
+                        backgroundColor: "var(--color-bg-alt)",
+                        color: "var(--color-text)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontWeight: 700,
+                        fontSize: "0.8125rem",
+                      }}
+                    >
+                      #{idx + 1}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: "0.875rem", color: "var(--color-text)" }}>
+                        {item.product_name}
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
+                        {item.total_sold} units ordered
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ fontWeight: 700, fontSize: "0.9375rem", color: "var(--color-text)" }}>
+                    {formatPrice(item.total_revenue)}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -192,31 +179,31 @@ export default function AdminAnalyticsPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem", marginBottom: "6px" }}>
-                <span style={{ fontWeight: 600 }}>Instagram (@didostore.eg)</span>
-                <span style={{ fontWeight: 700 }}>58% (26 orders)</span>
+                <span style={{ fontWeight: 600 }}>Instagram</span>
+                <span style={{ fontWeight: 700 }}>{totalOrders > 0 ? "—" : "0 orders"}</span>
               </div>
               <div style={{ height: "8px", backgroundColor: "var(--color-bg-alt)", borderRadius: "4px", overflow: "hidden" }}>
-                <div style={{ width: "58%", height: "100%", backgroundColor: "#DB2777" }} />
+                <div style={{ width: "0%", height: "100%", backgroundColor: "#DB2777" }} />
               </div>
             </div>
 
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem", marginBottom: "6px" }}>
-                <span style={{ fontWeight: 600 }}>TikTok (@didostore.eg)</span>
-                <span style={{ fontWeight: 700 }}>28% (13 orders)</span>
+                <span style={{ fontWeight: 600 }}>TikTok</span>
+                <span style={{ fontWeight: 700 }}>{totalOrders > 0 ? "—" : "0 orders"}</span>
               </div>
               <div style={{ height: "8px", backgroundColor: "var(--color-bg-alt)", borderRadius: "4px", overflow: "hidden" }}>
-                <div style={{ width: "28%", height: "100%", backgroundColor: "#111827" }} />
+                <div style={{ width: "0%", height: "100%", backgroundColor: "#111827" }} />
               </div>
             </div>
 
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem", marginBottom: "6px" }}>
                 <span style={{ fontWeight: 600 }}>WhatsApp Direct / Referrals</span>
-                <span style={{ fontWeight: 700 }}>14% (6 orders)</span>
+                <span style={{ fontWeight: 700 }}>{totalOrders > 0 ? "—" : "0 orders"}</span>
               </div>
               <div style={{ height: "8px", backgroundColor: "var(--color-bg-alt)", borderRadius: "4px", overflow: "hidden" }}>
-                <div style={{ width: "14%", height: "100%", backgroundColor: "#059669" }} />
+                <div style={{ width: "0%", height: "100%", backgroundColor: "#059669" }} />
               </div>
             </div>
           </div>
