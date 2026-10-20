@@ -380,14 +380,16 @@ export default function ProductDetailPage({
 
       <div className="product-detail-layout">
         {/* Gallery */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "14px", width: "100%", maxWidth: "100%", minWidth: 0 }}>
           {/* Main Large Image Container */}
           <div
             className="product-detail-image-box"
             onClick={() => openLightbox()}
             style={{
               position: "relative",
-              height: "620px",
+              width: "100%",
+              maxWidth: "100%",
+              minWidth: 0,
               borderRadius: "18px",
               overflow: "hidden",
               background: "radial-gradient(circle at center, #ffffff 0%, #faf8f5 100%)",
@@ -406,7 +408,7 @@ export default function ProductDetailPage({
                 width: "100%",
                 height: "100%",
                 objectFit: "contain",
-                padding: "16px",
+                padding: "12px",
                 transition: "transform 0.3s ease",
               }}
             />
@@ -653,9 +655,12 @@ export default function ProductDetailPage({
                 className="horizontal-touch-scroll"
                 style={{
                   display: "flex",
-                  gap: "10px",
+                  gap: "8px",
                   padding: "4px 2px 10px",
                   overflowX: "auto",
+                  width: "100%",
+                  maxWidth: "100%",
+                  minWidth: 0,
                   scrollBehavior: "smooth",
                   WebkitOverflowScrolling: "touch",
                 }}
@@ -668,9 +673,9 @@ export default function ProductDetailPage({
                       id={`thumbnail-${idx}`}
                       onClick={() => handleSelectImage(img, idx)}
                       style={{
-                        width: "74px",
-                        height: "94px",
-                        minWidth: "74px",
+                        width: "70px",
+                        height: "90px",
+                        minWidth: "70px",
                         flexShrink: 0,
                         borderRadius: "10px",
                         overflow: "hidden",
@@ -722,7 +727,7 @@ export default function ProductDetailPage({
         </div>
 
         {/* Product Info & Purchase Options */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px", width: "100%", maxWidth: "100%", minWidth: 0 }}>
           <div>
             <span
               style={{
