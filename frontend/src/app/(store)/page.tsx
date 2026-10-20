@@ -21,7 +21,28 @@ import { Category, Product, FounderProfile } from "@/types";
 import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_FOUNDER } from "@/lib/mockData";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { DominoGallery } from "@/components/ui/domino-gallery";
+const CATEGORY_FALLBACK_IMAGES: Record<string, string> = {
+  "dresses": "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&auto=format&fit=crop&q=80",
+  "dresses-gowns": "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&auto=format&fit=crop&q=80",
+  "tops-blouses": "https://images.unsplash.com/photo-1551803091-e20673f15770?w=800&auto=format&fit=crop&q=80",
+  "pants-jeans": "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&auto=format&fit=crop&q=80",
+  "abayas-modest": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=800&auto=format&fit=crop&q=80",
+  "modest-fashion": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=800&auto=format&fit=crop&q=80",
+  "accessories": "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=800&auto=format&fit=crop&q=80",
+  "bags-accessories": "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&auto=format&fit=crop&q=80",
+  "bags": "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&auto=format&fit=crop&q=80",
+  "blazers-co-ords": "https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?w=800&auto=format&fit=crop&q=80",
+};
+
+function getCategoryImageUrl(cat: Category): string {
+  if (cat.image_path) {
+    return storageUrl(cat.image_path);
+  }
+  if (cat.slug && CATEGORY_FALLBACK_IMAGES[cat.slug]) {
+    return CATEGORY_FALLBACK_IMAGES[cat.slug];
+  }
+  return "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&auto=format&fit=crop&q=80";
+}
 
 export default function HomePage() {
   const router = useRouter();
@@ -389,9 +410,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── 3. Featured Categories — Interactive 3D Domino Gallery ─────── */}
+      {/* ── 3. Featured Categories — Simple & Premium ─────── */}
       <section style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 24px", width: "100%" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "32px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "28px" }}>
           <div>
             <h2 style={{ fontSize: "2rem", fontWeight: 700, color: "var(--color-text)", marginBottom: "8px" }}>
               {t("categories_title")}
@@ -417,28 +438,54 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* 3D Domino Interactive Gallery */}
-        <DominoGallery
-          items={categories.map((cat) => ({
-            src: cat.image_path || "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800",
-            alt: localize(cat, "name"),
-            title: localize(cat, "name"),
-            slug: cat.slug,
-          }))}
-          autoplay={true}
-          autoplayDuration={2600}
-          standAngle={94}
-          cardWidth={220}
-          cardHeight={560}
-          gap={18}
-          scrollLength={1000}
-          onSelect={(index, item) => {
-            const targetSlug = item.slug || categories[index]?.slug;
-            if (targetSlug) {
-              router.push(`/products?category=${targetSlug}`);
-            }
-          }}
-        />
+        {/* Clean Luxury Category Showcase */}
+        <div className="categories-luxury-grid">
+          {categories
+            .filter((cat) => cat.is_active !== false)
+            .map((cat) => {
+              const imgSrc = getCategoryImageUrl(cat);
+              const itemCount = cat.products_count ?? 0;
+
+              return (
+                <Link
+                  key={cat.id || cat.slug}
+                  href={`/products?category=${cat.slug}`}
+                  className="category-luxury-card group"
+                >
+                  <img
+                    src={imgSrc}
+                    alt={localize(cat, "name")}
+                    loading="lazy"
+                  />
+
+                  <div className="category-luxury-overlay">
+                    <h3 className="category-luxury-title">
+                      {localize(cat, "name")}
+                    </h3>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginTop: "4px",
+                      }}
+                    >
+                      <span className="category-luxury-subtitle">
+                        {itemCount > 0
+                          ? `${itemCount} ${language === "ar" ? "منتج" : "items"}`
+                          : language === "ar"
+                          ? "تسوقي الآن"
+                          : "Explore"}
+                      </span>
+                      <span className="category-luxury-arrow">
+                        <ArrowIcon size={13} />
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+        </div>
       </section>
 
       {/* ── 4. Trending & New Arrivals ──────────────────────────────── */}
