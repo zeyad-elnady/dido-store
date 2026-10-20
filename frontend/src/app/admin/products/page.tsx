@@ -24,7 +24,7 @@ import { useLanguage } from "@/context/LanguageContext";
 
 export default function AdminProductsPage() {
   const { isRTL } = useLanguage();
-  const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
+  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>(MOCK_CATEGORIES);
   const [search, setSearch] = useState("");
   const [selectedCat, setSelectedCat] = useState("all");
@@ -52,24 +52,33 @@ export default function AdminProductsPage() {
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const fetchProducts = () => {
-    api
-      .get("/admin/products")
-      .then((res) => {
-        if (res.data?.data && res.data.data.length > 0) {
-          setProducts(res.data.data);
-        }
-      })
-      .catch(() => {});
+  const [loading, setLoading] = useState(true);
 
-    api
-      .get("/categories")
-      .then((res) => {
-        if (res.data?.data && res.data.data.length > 0) {
-          setCategories(res.data.data);
-        }
-      })
-      .catch(() => {});
+  const fetchProducts = async () => {
+    try {
+      const res = await api.get("/admin/products?per_page=100");
+      if (res.data?.data) {
+        setProducts(res.data.data);
+      } else if (Array.isArray(res.data)) {
+        setProducts(res.data);
+      }
+    } catch (err) {
+      console.warn("Could not fetch products from API:", err);
+    } finally {
+      setLoading(false);
+    }
+
+    try {
+      const catRes = await api.get("/categories");
+      const cats = Array.isArray(catRes.data)
+        ? catRes.data
+        : (catRes.data?.data || []);
+      if (cats.length > 0) {
+        setCategories(cats);
+      }
+    } catch (err) {
+      console.warn("Could not fetch categories:", err);
+    }
   };
 
   useEffect(() => {
@@ -173,65 +182,48 @@ export default function AdminProductsPage() {
     if (editingProduct) {
       try {
         await api.put(`/admin/products/${editingProduct.id}`, payload);
-        fetchProducts();
-      } catch {
-        // Local state update
-        setProducts((prev) =>
-          prev.map((p) =>
-            p.id === editingProduct.id
-              ? {
-                  ...p,
-                  ...payload,
-                  images: finalImageUrl
-                    ? [{ id: Date.now(), product_id: p.id, image_path: finalImageUrl, sort_order: 1, is_primary: true }]
-                    : p.images,
-                }
-              : p
-          )
-        );
+        await fetchProducts();
+        setIsModalOpen(false);
+      } catch (err: any) {
+        const errors = err?.response?.data?.errors;
+        const firstErr = errors ? (Object.values(errors).flat()[0] as string) : undefined;
+        const errorMsg =
+          firstErr ||
+          err?.response?.data?.message ||
+          (isRTL ? "فشل تعديل القطعة." : "Failed to update product.");
+        alert(errorMsg);
       }
     } else {
       try {
-        const res = await api.post("/admin/products", payload);
-        if (res.data?.data) {
-          fetchProducts();
-        }
-      } catch {
-        // Local state addition
-        const newProd: Product = {
-          id: Date.now(),
-          ...payload,
-          slug: nameEn.toLowerCase().replace(/\s+/g, "-"),
-          is_available: true,
-          is_featured: false,
-          created_at: new Date().toISOString(),
-          description_ar: null,
-          images: [
-            {
-              id: Date.now(),
-              product_id: Date.now(),
-              image_path: finalImageUrl || "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800",
-              sort_order: 1,
-              is_primary: true,
-            },
-          ],
-        };
-        setProducts((prev) => [newProd, ...prev]);
+        await api.post("/admin/products", payload);
+        await fetchProducts();
+        setIsModalOpen(false);
+      } catch (err: any) {
+        const errors = err?.response?.data?.errors;
+        const firstErr = errors ? (Object.values(errors).flat()[0] as string) : undefined;
+        const errorMsg =
+          firstErr ||
+          err?.response?.data?.message ||
+          (isRTL ? "فشل إضافة القطعة إلى قاعدة البيانات." : "Failed to add product to database.");
+        alert(errorMsg);
       }
     }
 
     setIsUploading(false);
-    setIsModalOpen(false);
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this piece?")) return;
+    if (!confirm(isRTL ? "هل أنتِ متأكدة من حذف هذه القطعة؟" : "Are you sure you want to delete this piece?")) return;
     try {
       await api.delete(`/admin/products/${id}`);
-    } catch {
-      // Local fallback
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+      await fetchProducts();
+    } catch (err: any) {
+      const errorMsg =
+        err?.response?.data?.message ||
+        (isRTL ? "فشل حذف القطعة من قاعدة البيانات." : "Failed to delete product from database.");
+      alert(errorMsg);
     }
-    setProducts((prev) => prev.filter((p) => p.id !== id));
   };
 
   const filteredProducts = useMemo(() => {
@@ -372,7 +364,23 @@ export default function AdminProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredProducts.map((p) => {
+              {loading && products.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ padding: "48px 20px", textAlign: "center", color: "var(--color-text-secondary)" }}>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: "10px", fontSize: "0.9375rem" }}>
+                      <RefreshCw size={18} className="animate-spin" />
+                      <span>{isRTL ? "جارٍ جلب القطع من قاعدة البيانات..." : "Loading catalog from database..."}</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredProducts.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ padding: "48px 20px", textAlign: "center", color: "var(--color-text-secondary)" }}>
+                    {isRTL ? "لا توجد قطع مطابقة للبحث أو القسم." : "No pieces found in catalog."}
+                  </td>
+                </tr>
+              ) : (
+                filteredProducts.map((p) => {
                 const img =
                   p.images?.find((i) => i.is_primary)?.image_path ||
                   p.images?.[0]?.image_path ||
@@ -464,7 +472,7 @@ export default function AdminProductsPage() {
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>
