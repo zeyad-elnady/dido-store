@@ -80,6 +80,14 @@ class DepositController extends Controller
     {
         $order = Order::where('order_number', $orderNumber)->firstOrFail();
 
+        // Allow payment_method alias and default transfer_date
+        if (!$request->has('method') && $request->has('payment_method')) {
+            $request->merge(['method' => $request->input('payment_method')]);
+        }
+        if (!$request->has('transfer_date')) {
+            $request->merge(['transfer_date' => now()->toDateString()]);
+        }
+
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0.01',
             'method' => 'required|in:instapay,vodafone_cash,telda',

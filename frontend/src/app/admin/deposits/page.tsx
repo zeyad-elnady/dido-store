@@ -13,7 +13,7 @@ import {
   X,
   Search,
 } from "lucide-react";
-import api, { formatPrice } from "@/lib/api";
+import api, { formatPrice, storageUrl } from "@/lib/api";
 import { Deposit } from "@/types";
 import { MOCK_ORDERS } from "@/lib/mockData";
 
@@ -385,7 +385,7 @@ export default function AdminDepositsPage() {
             </div>
             <div style={{ padding: "20px", maxHeight: "70vh", overflowY: "auto", textAlign: "center" }}>
               <img
-                src={selectedScreenshot}
+                src={storageUrl(selectedScreenshot)}
                 alt="Deposit Screenshot"
                 style={{ maxWidth: "100%", height: "auto", borderRadius: "8px" }}
               />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -11,6 +11,8 @@ import {
   Truck,
   CreditCard,
   Upload,
+  UploadCloud,
+  Trash2,
   AlertCircle,
   MessageCircle,
   FileText,
@@ -49,9 +51,12 @@ function OrderTrackingContent() {
   // Deposit Form State
   const [depositAmount, setDepositAmount] = useState<string>("");
   const [depositMethod, setDepositMethod] = useState<"instapay" | "vodafone_cash" | "telda">("instapay");
-  const [screenshotUrl, setScreenshotUrl] = useState<string>("");
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchOrder = async (num: string) => {
     if (!num.trim()) return;
@@ -119,22 +124,69 @@ function OrderTrackingContent() {
     }
   }, [queryOrder]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setFileError(language === "ar" ? "يرجى اختيار ملف صورة صالح (JPG, PNG, WEBP)" : "Please select a valid image file (JPG, PNG, WEBP)");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setFileError(language === "ar" ? "حجم الصورة كبير جداً (الحد الأقصى 5 ميجابايت)" : "File size is too large (Max 5MB)");
+      return;
+    }
+
+    setFileError(null);
+    setScreenshotFile(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setScreenshotPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearScreenshot = () => {
+    setScreenshotFile(null);
+    setScreenshotPreview(null);
+    setFileError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleDepositSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!order) return;
+
+    if (!screenshotFile) {
+      setFileError(language === "ar" ? "يرجى إرفاق صورة إيصال التحويل" : "Please attach the transfer receipt image");
+      return;
+    }
+
     setUploading(true);
+    setFileError(null);
+
+    const formData = new FormData();
+    formData.append("amount", depositAmount || Math.round(order.total * 0.5).toString());
+    formData.append("method", depositMethod);
+    formData.append("transfer_date", new Date().toISOString().split("T")[0]);
+    formData.append("screenshot", screenshotFile);
 
     try {
-      await api.post(`/orders/${order.order_number}/deposits`, {
-        amount: parseFloat(depositAmount),
-        payment_method: depositMethod,
-        screenshot_url: screenshotUrl || "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600",
+      await api.post(`/orders/${order.order_number}/deposits`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
       setUploadSuccess(true);
+      clearScreenshot();
       fetchOrder(order.order_number);
     } catch {
       // Mock simulate success for client UX
       setUploadSuccess(true);
+      clearScreenshot();
     } finally {
       setUploading(false);
     }
@@ -587,22 +639,128 @@ function OrderTrackingContent() {
                 </div>
 
                 <div>
-                  <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "4px" }}>
-                    {t("screenshot_link")}
+                  <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "6px" }}>
+                    {language === "ar" ? "صورة إيصال التحويل (لقطة شاشة)" : "Receipt Image / Transfer Screenshot"} <span style={{ color: "var(--color-danger)" }}>*</span>
                   </label>
+
                   <input
-                    type="text"
-                    placeholder={t("screenshot_placeholder")}
-                    value={screenshotUrl}
-                    onChange={(e) => setScreenshotUrl(e.target.value)}
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      borderRadius: "8px",
-                      border: "1px solid var(--color-border)",
-                      fontSize: "0.9375rem",
-                    }}
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/png,image/jpeg,image/jpg,image/webp"
+                    onChange={handleFileChange}
+                    style={{ display: "none" }}
+                    id="receipt-file-input"
                   />
+
+                  {!screenshotPreview ? (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      style={{
+                        border: "2px dashed var(--color-border)",
+                        borderRadius: "12px",
+                        padding: "24px 16px",
+                        textAlign: "center",
+                        cursor: "pointer",
+                        backgroundColor: "#FAFAF8",
+                        transition: "all 0.2s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "var(--color-accent)";
+                        e.currentTarget.style.backgroundColor = "#FDF8F6";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "var(--color-border)";
+                        e.currentTarget.style.backgroundColor = "#FAFAF8";
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "44px",
+                          height: "44px",
+                          borderRadius: "50%",
+                          backgroundColor: "var(--color-accent-light)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          margin: "0 auto 10px",
+                        }}
+                      >
+                        <UploadCloud size={22} color="var(--color-accent)" />
+                      </div>
+                      <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)", marginBottom: "4px" }}>
+                        {language === "ar" ? "اضغطي هنا لاختيار صورة الإيصال" : "Click here to upload receipt screenshot"}
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>
+                        {language === "ar" ? "PNG, JPG, WEBP (الحد الأقصى 5 ميجابايت)" : "PNG, JPG, WEBP (Max 5MB)"}
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        border: "1px solid var(--color-border)",
+                        borderRadius: "12px",
+                        padding: "12px 14px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        backgroundColor: "#FFFFFF",
+                      }}
+                    >
+                      <img
+                        src={screenshotPreview}
+                        alt="Receipt preview"
+                        style={{
+                          width: "56px",
+                          height: "56px",
+                          objectFit: "cover",
+                          borderRadius: "8px",
+                          border: "1px solid var(--color-border-light)",
+                          flexShrink: 0,
+                        }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontSize: "0.875rem",
+                            fontWeight: 600,
+                            color: "var(--color-text)",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {screenshotFile?.name}
+                        </div>
+                        <div style={{ fontSize: "0.75rem", color: "#166534", marginTop: "2px", display: "flex", alignItems: "center", gap: "4px" }}>
+                          <CheckCircle2 size={12} />
+                          <span>{(screenshotFile?.size ? (screenshotFile.size / 1024).toFixed(0) : "0")} KB • {language === "ar" ? "تم تجهيز الصورة" : "Ready to upload"}</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={clearScreenshot}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "var(--color-danger)",
+                          cursor: "pointer",
+                          padding: "6px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                        title={language === "ar" ? "حذف الصورة" : "Remove image"}
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  )}
+
+                  {fileError && (
+                    <div style={{ fontSize: "0.75rem", color: "var(--color-danger)", marginTop: "6px" }}>
+                      {fileError}
+                    </div>
+                  )}
                 </div>
 
                 <button

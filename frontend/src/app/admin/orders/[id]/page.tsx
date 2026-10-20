@@ -17,7 +17,7 @@ import {
   Check,
   X,
 } from "lucide-react";
-import api, { formatPrice } from "@/lib/api";
+import api, { formatPrice, storageUrl } from "@/lib/api";
 import { Order, OrderStatus } from "@/types";
 import { MOCK_ORDERS } from "@/lib/mockData";
 
@@ -431,7 +431,7 @@ export default function AdminOrderDetailPage({
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                       {dep.screenshot_path && (
                         <a
-                          href={dep.screenshot_path}
+                          href={storageUrl(dep.screenshot_path)}
                           target="_blank"
                           rel="noopener"
                           style={{
