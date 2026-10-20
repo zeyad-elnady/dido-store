@@ -110,6 +110,9 @@ class ProductController extends Controller
             'is_available' => 'nullable|boolean',
             'is_featured' => 'nullable|boolean',
             'image_url' => 'nullable|string',
+            'image_urls' => 'nullable|array',
+            'image_urls.*' => 'string',
+            'primary_image' => 'nullable|string',
             'images' => 'nullable|array',
             'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
@@ -130,7 +133,7 @@ class ProductController extends Controller
 
         $product = Product::create($validated);
 
-        // Handle image uploads or image_url
+        // Handle image uploads or image_url / image_urls
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $index => $image) {
                 $path = $image->store('products', 'public');
@@ -139,6 +142,17 @@ class ProductController extends Controller
                     'image_path' => $path,
                     'sort_order' => $index,
                     'is_primary' => $index === 0,
+                ]);
+            }
+        } elseif ($request->filled('image_urls')) {
+            $urls = array_values(array_filter(array_map('trim', $request->input('image_urls', []))));
+            $primary = $request->input('primary_image') ?? ($urls[0] ?? null);
+            foreach ($urls as $index => $url) {
+                ProductImage::create([
+                    'product_id' => $product->id,
+                    'image_path' => $url,
+                    'sort_order' => $index,
+                    'is_primary' => ($url === $primary) || ($primary === null && $index === 0),
                 ]);
             }
         } elseif ($request->filled('image_url')) {
@@ -175,6 +189,9 @@ class ProductController extends Controller
             'is_available' => 'nullable|boolean',
             'is_featured' => 'nullable|boolean',
             'image_url' => 'nullable|string',
+            'image_urls' => 'nullable|array',
+            'image_urls.*' => 'string',
+            'primary_image' => 'nullable|string',
             'images' => 'nullable|array',
             'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
@@ -196,7 +213,7 @@ class ProductController extends Controller
 
         $product->update($validated);
 
-        // Handle new image uploads or image_url
+        // Handle new image uploads or image_url / image_urls
         if ($request->hasFile('images')) {
             $maxOrder = $product->images()->max('sort_order') ?? -1;
             foreach ($request->file('images') as $index => $image) {
@@ -207,6 +224,31 @@ class ProductController extends Controller
                     'sort_order' => $maxOrder + $index + 1,
                     'is_primary' => $product->images()->count() === 0 && $index === 0,
                 ]);
+            }
+        } elseif ($request->has('image_urls')) {
+            $urls = array_values(array_filter(array_map('trim', $request->input('image_urls', []))));
+            $primary = $request->input('primary_image') ?? ($urls[0] ?? null);
+
+            // Delete images removed from the list
+            $product->images()->whereNotIn('image_path', $urls)->delete();
+
+            // Reorder and ensure primary status
+            foreach ($urls as $index => $url) {
+                $isPrimary = ($url === $primary) || ($primary === null && $index === 0);
+                $existing = $product->images()->where('image_path', $url)->first();
+                if ($existing) {
+                    $existing->update([
+                        'sort_order' => $index,
+                        'is_primary' => $isPrimary,
+                    ]);
+                } else {
+                    ProductImage::create([
+                        'product_id' => $product->id,
+                        'image_path' => $url,
+                        'sort_order' => $index,
+                        'is_primary' => $isPrimary,
+                    ]);
+                }
             }
         } elseif ($request->filled('image_url')) {
             $existing = $product->images()->where('is_primary', true)->first();
@@ -230,6 +272,30 @@ class ProductController extends Controller
      */
     public function uploadImage(Request $request): JsonResponse
     {
+        if ($request->hasFile('images')) {
+            $request->validate([
+                'images' => 'required|array',
+                'images.*' => 'required|image|mimes:jpg,jpeg,png,webp,gif|max:10240',
+            ]);
+
+            $uploaded = [];
+            foreach ($request->file('images') as $file) {
+                $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+                $path = $file->storeAs('products', $filename, 'public');
+                $uploaded[] = [
+                    'path' => $path,
+                    'url' => '/storage/' . $path,
+                ];
+            }
+
+            return response()->json([
+                'files' => $uploaded,
+                'urls' => array_column($uploaded, 'url'),
+                'url' => $uploaded[0]['url'] ?? null,
+                'path' => $uploaded[0]['path'] ?? null,
+            ]);
+        }
+
         $request->validate([
             'image' => 'required|image|mimes:jpg,jpeg,png,webp,gif|max:10240',
         ]);
@@ -241,6 +307,7 @@ class ProductController extends Controller
         return response()->json([
             'path' => $path,
             'url' => '/storage/' . $path,
+            'urls' => ['/storage/' . $path],
         ]);
     }
 

@@ -16,11 +16,21 @@ import {
   Image as ImageIcon,
   Link as LinkIcon,
   RefreshCw,
+  Star,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import api, { formatPrice, storageUrl } from "@/lib/api";
 import { Product, Category } from "@/types";
 import { MOCK_PRODUCTS, MOCK_CATEGORIES } from "@/lib/mockData";
 import { useLanguage } from "@/context/LanguageContext";
+
+interface GalleryImage {
+  id: string;
+  file?: File;
+  previewUrl: string;
+  isPrimary: boolean;
+}
 
 export default function AdminProductsPage() {
   const { isRTL } = useLanguage();
@@ -43,12 +53,12 @@ export default function AdminProductsPage() {
   const [colors, setColors] = useState("Black, Cream, Beige");
   const [stockQuantity, setStockQuantity] = useState("10");
 
-  // Image Upload State
+  // Multi-Image Gallery State
   const [imageMode, setImageMode] = useState<"device" | "url">("device");
-  const [imageUrl, setImageUrl] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
+  const [gallery, setGallery] = useState<GalleryImage[]>([]);
+  const [urlInput, setUrlInput] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -85,23 +95,92 @@ export default function AdminProductsPage() {
     fetchProducts();
   }, []);
 
-  const handleFileSelect = (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      alert(isRTL ? "يرجى اختيار ملف صورة صالح (PNG, JPG, WEBP)" : "Please select a valid image file (PNG, JPG, WEBP)");
+  const handleFilesSelect = (files: FileList | File[]) => {
+    const fileList = Array.from(files);
+    const validImages: GalleryImage[] = [];
+
+    for (const file of fileList) {
+      if (!file.type.startsWith("image/")) {
+        alert(isRTL ? `الملف ${file.name} ليس صورة صالحة` : `File ${file.name} is not a valid image`);
+        continue;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        alert(isRTL ? `الصورة ${file.name} حجمها أكبر من 10 ميجابايت` : `File ${file.name} is larger than 10MB`);
+        continue;
+      }
+      const previewUrl = URL.createObjectURL(file);
+      validImages.push({
+        id: `device-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        file,
+        previewUrl,
+        isPrimary: false,
+      });
+    }
+
+    if (validImages.length > 0) {
+      setGallery((prev) => {
+        const hasPrimary = prev.some((img) => img.isPrimary);
+        const updated = [...prev, ...validImages];
+        if (!hasPrimary && updated.length > 0) {
+          updated[0].isPrimary = true;
+        }
+        return updated;
+      });
+    }
+  };
+
+  const handleAddUrl = () => {
+    const trimmed = urlInput.trim();
+    if (!trimmed) return;
+    if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://") && !trimmed.startsWith("/")) {
+      alert(isRTL ? "يرجى إدخال رابط يبدأ بـ http:// أو https://" : "Please enter a valid URL starting with http:// or https://");
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      alert(isRTL ? "حجم الصورة كبير جداً (الحد الأقصى 10 ميجابايت)" : "File is too large (max 10MB)");
-      return;
-    }
-    setSelectedFile(file);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      setImagePreview(result);
-      setImageUrl(result);
+    const newImage: GalleryImage = {
+      id: `url-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      previewUrl: trimmed,
+      isPrimary: false,
     };
-    reader.readAsDataURL(file);
+    setGallery((prev) => {
+      const hasPrimary = prev.some((img) => img.isPrimary);
+      const updated = [...prev, newImage];
+      if (!hasPrimary && updated.length > 0) {
+        updated[0].isPrimary = true;
+      }
+      return updated;
+    });
+    setUrlInput("");
+  };
+
+  const handleSetPrimary = (id: string) => {
+    setGallery((prev) =>
+      prev.map((img) => ({
+        ...img,
+        isPrimary: img.id === id,
+      }))
+    );
+  };
+
+  const handleRemoveImage = (id: string) => {
+    setGallery((prev) => {
+      const filtered = prev.filter((img) => img.id !== id);
+      if (filtered.length > 0 && !filtered.some((img) => img.isPrimary)) {
+        filtered[0].isPrimary = true;
+      }
+      return filtered;
+    });
+  };
+
+  const handleMoveImage = (index: number, direction: -1 | 1) => {
+    setGallery((prev) => {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= prev.length) return prev;
+      const copy = [...prev];
+      const temp = copy[index];
+      copy[index] = copy[targetIndex];
+      copy[targetIndex] = temp;
+      return copy;
+    });
   };
 
   const openAddModal = () => {
@@ -116,9 +195,8 @@ export default function AdminProductsPage() {
     setSizes("S, M, L, XL");
     setColors("Black, Beige, White");
     setStockQuantity("10");
-    setImageUrl("");
-    setSelectedFile(null);
-    setImagePreview("");
+    setGallery([]);
+    setUrlInput("");
     setImageMode("device");
     setIsModalOpen(true);
   };
@@ -135,11 +213,17 @@ export default function AdminProductsPage() {
     setSizes(p.sizes ? p.sizes.join(", ") : "");
     setColors(p.colors ? p.colors.join(", ") : "");
     setStockQuantity(p.stock_quantity.toString());
-    const existingImg = p.images?.[0]?.image_path || "";
-    setImageUrl(existingImg);
-    setSelectedFile(null);
-    setImagePreview(existingImg);
-    setImageMode(existingImg && existingImg.startsWith("http") ? "url" : "device");
+
+    const pImages = p.images || [];
+    const hasExistingPrimary = pImages.some((i) => i.is_primary);
+    const existingImages: GalleryImage[] = pImages.map((img, idx) => ({
+      id: `existing-${img.id || idx}`,
+      previewUrl: img.image_path,
+      isPrimary: !!img.is_primary || (idx === 0 && !hasExistingPrimary),
+    }));
+    setGallery(existingImages);
+    setUrlInput("");
+    setImageMode("device");
     setIsModalOpen(true);
   };
 
@@ -147,69 +231,80 @@ export default function AdminProductsPage() {
     e.preventDefault();
     setIsUploading(true);
 
-    let finalImageUrl = imageUrl;
+    try {
+      // 1. Upload new files from device to storage
+      const finalImageUrls: string[] = [];
+      let finalPrimaryUrl = "";
 
-    if (selectedFile) {
-      try {
-        const formData = new FormData();
-        formData.append("image", selectedFile);
-        const uploadRes = await api.post("/admin/upload", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        if (uploadRes.data?.url) {
-          finalImageUrl = uploadRes.data.url;
+      for (let i = 0; i < gallery.length; i++) {
+        const item = gallery[i];
+        let url = item.previewUrl;
+
+        if (item.file) {
+          setUploadProgress(
+            isRTL
+              ? `جارٍ رفع الصورة ${i + 1} من ${gallery.length}...`
+              : `Uploading photo ${i + 1} of ${gallery.length}...`
+          );
+          const formData = new FormData();
+          formData.append("image", item.file);
+          const uploadRes = await api.post("/admin/upload", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+          if (uploadRes.data?.url) {
+            url = uploadRes.data.url;
+          }
         }
-      } catch (err) {
-        console.warn("Direct upload fallback to data URL:", err);
-        finalImageUrl = imagePreview || imageUrl;
+
+        finalImageUrls.push(url);
+        if (item.isPrimary) {
+          finalPrimaryUrl = url;
+        }
       }
-    }
 
-    const payload = {
-      name_en: nameEn,
-      name_ar: nameAr || null,
-      category_id: categoryId,
-      description_en: descEn,
-      selling_price: parseFloat(sellingPrice) || 0,
-      discount_price: discountPrice ? parseFloat(discountPrice) : null,
-      cost_price: parseFloat(costPrice) || 0,
-      sizes: sizes.split(",").map((s) => s.trim()).filter(Boolean),
-      colors: colors.split(",").map((c) => c.trim()).filter(Boolean),
-      stock_quantity: parseInt(stockQuantity) || 0,
-      image_url: finalImageUrl || null,
-    };
+      if (!finalPrimaryUrl && finalImageUrls.length > 0) {
+        finalPrimaryUrl = finalImageUrls[0];
+      }
 
-    if (editingProduct) {
-      try {
+      setUploadProgress(isRTL ? "جارٍ حفظ بيانات القطعة في قاعدة البيانات..." : "Saving piece to database...");
+
+      const payload = {
+        name_en: nameEn,
+        name_ar: nameAr || null,
+        category_id: categoryId,
+        description_en: descEn,
+        selling_price: parseFloat(sellingPrice) || 0,
+        discount_price: discountPrice ? parseFloat(discountPrice) : null,
+        cost_price: parseFloat(costPrice) || 0,
+        sizes: sizes.split(",").map((s) => s.trim()).filter(Boolean),
+        colors: colors.split(",").map((c) => c.trim()).filter(Boolean),
+        stock_quantity: parseInt(stockQuantity) || 0,
+        image_urls: finalImageUrls,
+        primary_image: finalPrimaryUrl || null,
+        image_url: finalPrimaryUrl || (finalImageUrls[0] || null),
+      };
+
+      if (editingProduct) {
         await api.put(`/admin/products/${editingProduct.id}`, payload);
-        await fetchProducts();
-        setIsModalOpen(false);
-      } catch (err: any) {
-        const errors = err?.response?.data?.errors;
-        const firstErr = errors ? (Object.values(errors).flat()[0] as string) : undefined;
-        const errorMsg =
-          firstErr ||
-          err?.response?.data?.message ||
-          (isRTL ? "فشل تعديل القطعة." : "Failed to update product.");
-        alert(errorMsg);
-      }
-    } else {
-      try {
+      } else {
         await api.post("/admin/products", payload);
-        await fetchProducts();
-        setIsModalOpen(false);
-      } catch (err: any) {
-        const errors = err?.response?.data?.errors;
-        const firstErr = errors ? (Object.values(errors).flat()[0] as string) : undefined;
-        const errorMsg =
-          firstErr ||
-          err?.response?.data?.message ||
-          (isRTL ? "فشل إضافة القطعة إلى قاعدة البيانات." : "Failed to add product to database.");
-        alert(errorMsg);
       }
-    }
 
-    setIsUploading(false);
+      await fetchProducts();
+      setIsModalOpen(false);
+    } catch (err: any) {
+      console.error("Save error:", err);
+      const errors = err?.response?.data?.errors;
+      const firstErr = errors ? (Object.values(errors).flat()[0] as string) : undefined;
+      const errorMsg =
+        firstErr ||
+        err?.response?.data?.message ||
+        (isRTL ? "فشل حفظ القطعة." : "Failed to save product.");
+      alert(errorMsg);
+    } finally {
+      setIsUploading(false);
+      setUploadProgress("");
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -390,8 +485,27 @@ export default function AdminProductsPage() {
                   <tr key={p.id} style={{ borderBottom: "1px solid var(--color-border-light)" }}>
                     <td style={{ padding: "16px 20px" }}>
                       <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                        <div style={{ width: "48px", height: "60px", borderRadius: "6px", overflow: "hidden", backgroundColor: "#f5f5f5", flexShrink: 0 }}>
+                        <div style={{ position: "relative", width: "48px", height: "60px", borderRadius: "6px", overflow: "hidden", backgroundColor: "#f5f5f5", flexShrink: 0 }}>
                           <img src={storageUrl(img)} alt={p.name_en} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          {p.images && p.images.length > 1 && (
+                            <span
+                              style={{
+                                position: "absolute",
+                                bottom: "2px",
+                                [isRTL ? "left" : "right"]: "2px",
+                                backgroundColor: "rgba(0,0,0,0.72)",
+                                color: "#FFFFFF",
+                                fontSize: "0.625rem",
+                                fontWeight: 700,
+                                padding: "1px 4px",
+                                borderRadius: "4px",
+                                lineHeight: 1.2,
+                              }}
+                              title={`${p.images.length} photos`}
+                            >
+                              +{p.images.length}
+                            </span>
+                          )}
                         </div>
                         <div>
                           <div style={{ fontWeight: 600, color: "var(--color-text)", maxWidth: "260px" }}>
@@ -631,10 +745,25 @@ export default function AdminProductsPage() {
 
               {/* Photo Upload Section */}
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <label style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-primary)" }}>
-                    {isRTL ? "صورة القطعة *" : "Piece Photo *"}
+                {/* Multi-Photo Manager Header */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                  <label style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-primary)", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span>{isRTL ? "صور القطعة" : "Piece Photos"}</span>
+                    <span
+                      style={{
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        backgroundColor: gallery.length > 0 ? "#fdf3eb" : "#f1ebe4",
+                        color: gallery.length > 0 ? "var(--color-accent)" : "#7a6e65",
+                        border: "1px solid #ebd9c8",
+                        padding: "1px 8px",
+                        borderRadius: "12px",
+                      }}
+                    >
+                      {gallery.length} {isRTL ? "صور" : gallery.length === 1 ? "photo" : "photos"}
+                    </span>
                   </label>
+
                   <div style={{ display: "flex", background: "#f3ece5", borderRadius: "8px", padding: "2px" }}>
                     <button
                       type="button"
@@ -683,175 +812,338 @@ export default function AdminProductsPage() {
                   </div>
                 </div>
 
-                {imageMode === "device" ? (
-                  <div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      style={{ display: "none" }}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileSelect(file);
-                      }}
-                    />
+                {/* Hidden Multi-file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      handleFilesSelect(e.target.files);
+                      e.target.value = "";
+                    }
+                  }}
+                />
 
-                    {imagePreview ? (
-                      <div
+                {/* Input Method */}
+                {imageMode === "device" ? (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDragOver(true);
+                    }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragOver(false);
+                      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                        handleFilesSelect(e.dataTransfer.files);
+                      }
+                    }}
+                    style={{
+                      border: `2px dashed ${dragOver ? "var(--color-accent)" : "#d6cbbf"}`,
+                      background: dragOver ? "#f4ede4" : "#faf7f2",
+                      borderRadius: "12px",
+                      padding: gallery.length > 0 ? "14px 16px" : "24px 16px",
+                      textAlign: "center",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      marginBottom: "12px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: gallery.length > 0 ? "36px" : "44px",
+                        height: gallery.length > 0 ? "36px" : "44px",
+                        borderRadius: "50%",
+                        background: "#ede3d6",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        margin: "0 auto 8px",
+                        color: "var(--color-accent)",
+                      }}
+                    >
+                      <UploadCloud size={gallery.length > 0 ? 18 : 22} />
+                    </div>
+                    <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-primary)", margin: "0 0 4px" }}>
+                      {gallery.length > 0
+                        ? (isRTL ? "+ اضغطي لاختيار صور إضافية من الجهاز (تحديد متعدد)" : "+ Click to add more photos from device (multiple)")
+                        : (isRTL ? "اضغطي لاختيار صورة أو عدة صور معاً من جهازك" : "Click to select one or multiple photos from your device")}
+                    </p>
+                    <p style={{ fontSize: "0.75rem", color: "#8a7e74", margin: 0 }}>
+                      {isRTL
+                        ? "يمكنكِ اختيار عدة صور دفعة واحدة أو سحبها وإفلاتها هنا (PNG, JPG, WEBP حتى 10 ميجا)"
+                        : "Select multiple photos at once or drag and drop here (PNG, JPG, WEBP up to 10MB)"}
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ marginBottom: "12px" }}>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <input
+                        type="text"
+                        value={urlInput}
+                        onChange={(e) => setUrlInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddUrl();
+                          }
+                        }}
+                        placeholder="https://images.unsplash.com/... or https://img.ltwebstatic.com/..."
                         style={{
+                          flex: 1,
+                          padding: "10px 12px",
+                          borderRadius: "8px",
+                          border: "1px solid var(--color-border)",
+                          fontSize: "0.875rem",
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddUrl}
+                        style={{
+                          padding: "10px 16px",
+                          backgroundColor: "var(--color-primary)",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: "8px",
+                          fontSize: "0.8125rem",
+                          fontWeight: 600,
+                          cursor: "pointer",
                           display: "flex",
                           alignItems: "center",
-                          gap: "14px",
-                          padding: "12px",
-                          background: "#faf7f2",
-                          border: "1px solid #e5ded4",
-                          borderRadius: "10px",
+                          gap: "6px",
+                          whiteSpace: "nowrap",
                         }}
                       >
+                        <Plus size={16} />
+                        {isRTL ? "إضافة رابط" : "Add URL"}
+                      </button>
+                    </div>
+                    <p style={{ fontSize: "0.75rem", color: "#8a7e74", margin: "6px 0 0" }}>
+                      {isRTL
+                        ? "ألصقي رابط أي صورة خارجية واضغطي 'إضافة رابط'. يمكنكِ تكرار ذلك لإضافة عدة صور."
+                        : "Paste any image URL and click 'Add URL'. You can add multiple photos."}
+                    </p>
+                  </div>
+                )}
+
+                {/* Gallery Grid */}
+                {gallery.length > 0 && (
+                  <div
+                    style={{
+                      background: "#faf7f2",
+                      border: "1px solid #e5ded4",
+                      borderRadius: "12px",
+                      padding: "12px",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                      <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--color-primary)" }}>
+                        {isRTL
+                          ? "معاينة وترتيب الصور (اضغطي على النجمة لتعيين صورة الغلاف الرئيسية):"
+                          : "Photo Gallery (click the star to set as cover photo):"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "var(--color-accent)",
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          padding: 0,
+                        }}
+                      >
+                        <Plus size={14} />
+                        {isRTL ? "إضافة صور" : "Add photos"}
+                      </button>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))",
+                        gap: "10px",
+                      }}
+                    >
+                      {gallery.map((img, index) => (
                         <div
+                          key={img.id}
                           style={{
-                            width: "72px",
-                            height: "72px",
-                            borderRadius: "8px",
+                            position: "relative",
+                            borderRadius: "10px",
                             overflow: "hidden",
-                            background: "#eae3d9",
-                            flexShrink: 0,
-                            border: "1px solid rgba(0,0,0,0.06)",
+                            border: img.isPrimary ? "2px solid var(--color-accent)" : "1px solid #dcd4c8",
+                            backgroundColor: "#fff",
+                            boxShadow: img.isPrimary ? "0 2px 8px rgba(155, 107, 67, 0.25)" : "0 1px 3px rgba(0,0,0,0.05)",
+                            display: "flex",
+                            flexDirection: "column",
+                            transition: "all 0.15s ease",
                           }}
                         >
-                          <img
-                            src={storageUrl(imagePreview)}
-                            alt="Preview"
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                          />
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: "0.8125rem", fontWeight: 600, margin: 0, color: "var(--color-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {selectedFile ? selectedFile.name : (isRTL ? "الصورة الحالية للقطعة" : "Current piece photo")}
-                          </p>
-                          <p style={{ fontSize: "0.75rem", color: "#8a7e74", margin: "2px 0 0" }}>
-                            {selectedFile
-                              ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`
-                              : (isRTL ? "جاهزة للحفظ" : "Ready to save")}
-                          </p>
-                          <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                          <div style={{ position: "relative", width: "100%", height: "120px", background: "#f0ebe4" }}>
+                            <img
+                              src={storageUrl(img.previewUrl)}
+                              alt={`Photo ${index + 1}`}
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            />
+
+                            {/* Cover Star Button */}
                             <button
                               type="button"
-                              onClick={() => fileInputRef.current?.click()}
+                              onClick={() => handleSetPrimary(img.id)}
+                              title={isRTL ? "تعيين كصورة الغلاف" : "Set as Cover photo"}
                               style={{
-                                padding: "4px 10px",
-                                fontSize: "0.75rem",
-                                borderRadius: "6px",
-                                border: "1px solid #d4c8bc",
-                                background: "#fff",
-                                cursor: "pointer",
-                                color: "var(--color-primary)",
-                                fontWeight: 500,
-                              }}
-                            >
-                              {isRTL ? "تغيير الصورة" : "Change photo"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedFile(null);
-                                setImagePreview("");
-                                setImageUrl("");
-                              }}
-                              style={{
-                                padding: "4px 10px",
-                                fontSize: "0.75rem",
+                                position: "absolute",
+                                top: "6px",
+                                [isRTL ? "right" : "left"]: "6px",
+                                padding: "3px 6px",
                                 borderRadius: "6px",
                                 border: "none",
-                                background: "#fee2e2",
-                                color: "#b91c1c",
                                 cursor: "pointer",
-                                fontWeight: 500,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "3px",
+                                fontSize: "0.6875rem",
+                                fontWeight: 700,
+                                backgroundColor: img.isPrimary ? "#B45309" : "rgba(0,0,0,0.55)",
+                                color: "#fff",
+                                backdropFilter: "blur(4px)",
+                                boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
                               }}
                             >
-                              {isRTL ? "حذف" : "Remove"}
+                              <Star size={11} fill={img.isPrimary ? "#FBBF24" : "none"} color={img.isPrimary ? "#FBBF24" : "#fff"} />
+                              <span>{img.isPrimary ? (isRTL ? "الغلاف" : "Cover") : (isRTL ? "غلاف؟" : "Cover")}</span>
+                            </button>
+
+                            {/* Remove Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage(img.id)}
+                              title={isRTL ? "حذف هذه الصورة" : "Remove this photo"}
+                              style={{
+                                position: "absolute",
+                                top: "6px",
+                                [isRTL ? "left" : "right"]: "6px",
+                                width: "24px",
+                                height: "24px",
+                                borderRadius: "50%",
+                                border: "none",
+                                backgroundColor: "rgba(220, 38, 38, 0.85)",
+                                color: "#fff",
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                              }}
+                            >
+                              <Trash2 size={12} />
                             </button>
                           </div>
+
+                          {/* Reorder and Index Controls */}
+                          <div
+                            style={{
+                              padding: "4px 6px",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              background: img.isPrimary ? "#faf2ea" : "#fff",
+                              borderTop: "1px solid #f0ebe4",
+                              fontSize: "0.6875rem",
+                            }}
+                          >
+                            <span style={{ fontWeight: 600, color: img.isPrimary ? "var(--color-accent)" : "#7a6e65" }}>
+                              #{index + 1}
+                            </span>
+                            <div style={{ display: "flex", gap: "2px" }}>
+                              <button
+                                type="button"
+                                disabled={index === 0}
+                                onClick={() => handleMoveImage(index, -1)}
+                                style={{
+                                  border: "none",
+                                  background: "none",
+                                  cursor: index === 0 ? "default" : "pointer",
+                                  opacity: index === 0 ? 0.25 : 1,
+                                  padding: "1px 3px",
+                                  color: "var(--color-primary)",
+                                }}
+                                title="Move left"
+                              >
+                                <ChevronLeft size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={index === gallery.length - 1}
+                                onClick={() => handleMoveImage(index, 1)}
+                                style={{
+                                  border: "none",
+                                  background: "none",
+                                  cursor: index === gallery.length - 1 ? "default" : "pointer",
+                                  opacity: index === gallery.length - 1 ? 0.25 : 1,
+                                  padding: "1px 3px",
+                                  color: "var(--color-primary)",
+                                }}
+                                title="Move right"
+                              >
+                                <ChevronRight size={13} />
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
+                      ))}
+
+                      {/* Add More Tile */}
                       <div
                         onClick={() => fileInputRef.current?.click()}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          setDragOver(true);
-                        }}
-                        onDragLeave={() => setDragOver(false)}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          setDragOver(false);
-                          const file = e.dataTransfer.files?.[0];
-                          if (file) handleFileSelect(file);
-                        }}
                         style={{
-                          border: `2px dashed ${dragOver ? "var(--color-accent)" : "#d6cbbf"}`,
-                          background: dragOver ? "#f4ede4" : "#faf7f2",
-                          borderRadius: "12px",
-                          padding: "24px 16px",
-                          textAlign: "center",
+                          height: "152px",
+                          borderRadius: "10px",
+                          border: "2px dashed #d6cbbf",
+                          backgroundColor: "#fff",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
                           cursor: "pointer",
-                          transition: "all 0.2s ease",
+                          color: "#8a7e74",
+                          padding: "8px",
+                          textAlign: "center",
+                          transition: "all 0.15s ease",
                         }}
                       >
                         <div
                           style={{
-                            width: "44px",
-                            height: "44px",
+                            width: "32px",
+                            height: "32px",
                             borderRadius: "50%",
                             background: "#ede3d6",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            margin: "0 auto 10px",
+                            marginBottom: "6px",
                             color: "var(--color-accent)",
                           }}
                         >
-                          <UploadCloud size={22} />
+                          <Plus size={18} />
                         </div>
-                        <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-primary)", margin: "0 0 4px" }}>
-                          {isRTL ? "اضغطي لاختيار صورة من جهازك" : "Click to choose a photo from your device"}
-                        </p>
-                        <p style={{ fontSize: "0.75rem", color: "#8a7e74", margin: 0 }}>
-                          {isRTL
-                            ? "أو اسحبي الصورة وأفلتها هنا (PNG, JPG, WEBP حتى 10 ميجا)"
-                            : "or drag and drop an image file here (PNG, JPG, WEBP up to 10MB)"}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div>
-                    <input
-                      type="text"
-                      value={imageUrl}
-                      onChange={(e) => {
-                        setImageUrl(e.target.value);
-                        setImagePreview(e.target.value);
-                        setSelectedFile(null);
-                      }}
-                      placeholder="https://images.unsplash.com/... or https://img.ltwebstatic.com/..."
-                      style={{
-                        width: "100%",
-                        padding: "10px 12px",
-                        borderRadius: "8px",
-                        border: "1px solid var(--color-border)",
-                      }}
-                    />
-                    {imageUrl && (
-                      <div style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "10px" }}>
-                        <div style={{ width: "40px", height: "40px", borderRadius: "6px", overflow: "hidden", background: "#eee", flexShrink: 0 }}>
-                          <img src={imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        </div>
-                        <span style={{ fontSize: "0.75rem", color: "#666" }}>
-                          {isRTL ? "معاينة الرابط المباشر" : "Direct URL preview"}
+                        <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>
+                          {isRTL ? "+ إضافة صور" : "+ Add Photos"}
                         </span>
                       </div>
-                    )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -883,8 +1175,8 @@ export default function AdminProductsPage() {
                 >
                   {isUploading && <RefreshCw size={16} className="animate-spin" />}
                   {isUploading
-                    ? (isRTL ? "جارٍ الحفظ والرفع..." : "Uploading & Saving...")
-                    : (isRTL ? "حفظ القطعة" : "Save Piece")}
+                    ? (uploadProgress || (isRTL ? "جارٍ الحفظ والرفع..." : "Uploading & Saving..."))
+                    : (editingProduct ? (isRTL ? "تحديث القطعة" : "Update Piece") : (isRTL ? "حفظ القطعة" : "Save Piece"))}
                 </button>
               </div>
             </form>
