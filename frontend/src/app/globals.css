@@ -413,11 +413,15 @@ textarea.input {
 
 .product-detail-image-box {
   position: relative;
-  height: 540px;
-  border-radius: 16px;
+  height: 620px;
+  border-radius: 18px;
   overflow: hidden;
-  background-color: #f7f7f7;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.04);
+  background: radial-gradient(circle at center, #ffffff 0%, #faf8f5 100%);
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @media (max-width: 640px) {
@@ -426,7 +430,7 @@ textarea.input {
     gap: 24px !important;
   }
   .product-detail-image-box {
-    height: 360px !important;
+    height: 480px !important;
   }
   .product-detail-buttons {
     flex-direction: column !important;
