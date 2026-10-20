@@ -49,8 +49,17 @@ RUN composer install --no-security-blocking --no-dev --no-scripts --no-autoloade
 # Copy application code
 COPY backend/ .
 
+# Ensure storage and bootstrap directories exist with proper permissions
+RUN mkdir -p storage/framework/cache/data \
+             storage/framework/sessions \
+             storage/framework/views \
+             storage/logs \
+             bootstrap/cache \
+    && chown -R www:www /var/www/html \
+    && chmod -R 777 storage bootstrap/cache
+
 # Generate optimized autoloader
-RUN composer dump-autoload --optimize --no-dev
+RUN composer dump-autoload --optimize --no-dev --no-scripts
 
 # Set permissions
 RUN chown -R www:www /var/www/html \
