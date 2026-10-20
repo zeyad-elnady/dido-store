@@ -13,7 +13,7 @@ import {
   Check,
   X,
 } from "lucide-react";
-import api from "@/lib/api";
+import api, { storageUrl } from "@/lib/api";
 import { Category, Product } from "@/types";
 import { MOCK_CATEGORIES, MOCK_PRODUCTS } from "@/lib/mockData";
 import { useCart } from "@/context/CartContext";
@@ -38,8 +38,9 @@ function ProductsContent() {
     api
       .get("/categories")
       .then((res) => {
-        if (res.data?.data && res.data.data.length > 0) {
-          setCategories(res.data.data);
+        const cats = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        if (cats.length > 0) {
+          setCategories(cats);
         }
       })
       .catch(() => {});
@@ -48,8 +49,9 @@ function ProductsContent() {
     api
       .get("/products")
       .then((res) => {
-        if (res.data?.data && res.data.data.length > 0) {
-          setProducts(res.data.data);
+        const prods = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        if (prods.length > 0) {
+          setProducts(prods);
         }
       })
       .catch(() => {});
@@ -355,7 +357,7 @@ function ProductsContent() {
                   }}
                 >
                   <img
-                    src={primaryImg}
+                    src={storageUrl(primaryImg)}
                     alt={localize(product, "name")}
                     style={{
                       width: "100%",

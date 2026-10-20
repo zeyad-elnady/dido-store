@@ -16,7 +16,7 @@ import {
   CreditCard,
   MessageCircle,
 } from "lucide-react";
-import api from "@/lib/api";
+import api, { storageUrl } from "@/lib/api";
 import { Product } from "@/types";
 import { MOCK_PRODUCTS } from "@/lib/mockData";
 import { useCart } from "@/context/CartContext";
@@ -48,39 +48,78 @@ export default function ProductDetailPage({
     api
       .get(`/products/${slug}`)
       .then((res) => {
-        if (res.data?.data) {
-          const p = res.data.data;
+        const p = res.data?.data || res.data;
+        if (p && (p.id || p.name_en)) {
           setProduct(p);
-          setSelectedImage(
+          const primaryImg =
+            p.images?.find((img: any) => img.is_primary)?.image_path ||
             p.images?.[0]?.image_path ||
-              "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800"
-          );
+            "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800";
+          setSelectedImage(primaryImg);
           if (p.sizes && p.sizes.length > 0) setSelectedSize(p.sizes[0]);
           if (p.colors && p.colors.length > 0) setSelectedColor(p.colors[0]);
+        } else {
+          const found = MOCK_PRODUCTS.find((item) => item.slug === slug);
+          if (found) {
+            setProduct(found);
+            setSelectedImage(found.images?.[0]?.image_path || "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800");
+            if (found.sizes && found.sizes.length > 0) setSelectedSize(found.sizes[0]);
+            if (found.colors && found.colors.length > 0) setSelectedColor(found.colors[0]);
+          }
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        console.warn("Could not load product from API:", err);
         // Fallback to mock product
-        const found = MOCK_PRODUCTS.find((p) => p.slug === slug) || MOCK_PRODUCTS[0];
-        setProduct(found);
-        setSelectedImage(
-          found.images?.[0]?.image_path ||
-            "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800"
-        );
-        if (found.sizes && found.sizes.length > 0) setSelectedSize(found.sizes[0]);
-        if (found.colors && found.colors.length > 0) setSelectedColor(found.colors[0]);
+        const found = MOCK_PRODUCTS.find((p) => p.slug === slug);
+        if (found) {
+          setProduct(found);
+          setSelectedImage(
+            found.images?.[0]?.image_path ||
+              "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800"
+          );
+          if (found.sizes && found.sizes.length > 0) setSelectedSize(found.sizes[0]);
+          if (found.colors && found.colors.length > 0) setSelectedColor(found.colors[0]);
+        }
       })
       .finally(() => {
         setLoading(false);
       });
   }, [slug]);
 
-  if (loading || !product) {
+  if (loading) {
     return (
-      <div style={{ maxWidth: "1280px", margin: "80px auto", textAlign: "center" }}>
-        <p style={{ color: "var(--color-text-secondary)" }}>
+      <div style={{ maxWidth: "1280px", margin: "100px auto", textAlign: "center" }}>
+        <p style={{ color: "var(--color-text-secondary)", fontSize: "1.0625rem" }}>
           {language === "ar" ? "جاري تحميل تفاصيل القطعة..." : "Loading piece details..."}
         </p>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div style={{ maxWidth: "1280px", margin: "100px auto", textAlign: "center", padding: "0 24px" }}>
+        <h2 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "12px", color: "var(--color-text)" }}>
+          {language === "ar" ? "عذراً، لم يتم العثور على هذه القطعة" : "Piece Not Found"}
+        </h2>
+        <p style={{ color: "var(--color-text-secondary)", marginBottom: "24px" }}>
+          {language === "ar" ? "ربما تم تعديل الرابط أو نفاد الكمية." : "This piece might have been removed or is currently unavailable."}
+        </p>
+        <Link
+          href="/products"
+          style={{
+            display: "inline-block",
+            padding: "10px 22px",
+            backgroundColor: "var(--color-accent)",
+            color: "#fff",
+            borderRadius: "8px",
+            fontWeight: 600,
+            textDecoration: "none",
+          }}
+        >
+          {t("back_to_catalog")}
+        </Link>
       </div>
     );
   }
@@ -141,7 +180,7 @@ export default function ProductDetailPage({
             }}
           >
             <img
-              src={selectedImage}
+              src={storageUrl(selectedImage)}
               alt={localize(product, "name")}
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
@@ -200,7 +239,7 @@ export default function ProductDetailPage({
                   aria-label="Select photo"
                 >
                   <img
-                    src={img.image_path}
+                    src={storageUrl(img.image_path)}
                     alt="thumbnail"
                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
                   />

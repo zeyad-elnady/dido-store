@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { X, Trash2, ArrowRight, ArrowLeft, ShoppingBag } from "lucide-react";
+import { storageUrl } from "@/lib/api";
 
 export default function CartDrawer() {
   const { items, isCartOpen, setIsCartOpen, updateQuantity, removeFromCart, subtotal, totalItems } = useCart();
@@ -147,7 +148,7 @@ export default function CartDrawer() {
                       }}
                     >
                       <img
-                        src={primaryImage}
+                        src={storageUrl(primaryImage)}
                         alt={localize(item.product, "name")}
                         style={{ width: "100%", height: "100%", objectFit: "cover" }}
                       />

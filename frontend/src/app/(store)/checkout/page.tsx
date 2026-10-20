@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { EGYPT_GOVERNORATES } from "@/lib/translations";
-import api from "@/lib/api";
+import api, { storageUrl } from "@/lib/api";
 import {
   ShoppingBag,
   ArrowRight,
@@ -499,7 +499,7 @@ export default function CheckoutPage() {
                 return (
                   <div key={idx} style={{ display: "flex", gap: "12px", alignItems: "center" }}>
                     <div style={{ width: "56px", height: "70px", borderRadius: "6px", overflow: "hidden", flexShrink: 0, backgroundColor: "#f5f5f5" }}>
-                      <img src={img} alt={localize(item.product, "name")} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <img src={storageUrl(img)} alt={localize(item.product, "name")} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>

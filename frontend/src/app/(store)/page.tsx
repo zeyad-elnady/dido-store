@@ -16,7 +16,7 @@ import {
   Maximize2,
   X,
 } from "lucide-react";
-import api from "@/lib/api";
+import api, { storageUrl } from "@/lib/api";
 import { Category, Product, FounderProfile } from "@/types";
 import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_FOUNDER } from "@/lib/mockData";
 import { useCart } from "@/context/CartContext";
@@ -39,8 +39,9 @@ export default function HomePage() {
     api
       .get("/categories")
       .then((res) => {
-        if (res.data?.data && res.data.data.length > 0) {
-          setCategories(res.data.data);
+        const cats = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        if (cats.length > 0) {
+          setCategories(cats);
         }
       })
       .catch(() => {});
@@ -49,8 +50,9 @@ export default function HomePage() {
     api
       .get("/products?limit=8")
       .then((res) => {
-        if (res.data?.data && res.data.data.length > 0) {
-          setProducts(res.data.data);
+        const prods = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        if (prods.length > 0) {
+          setProducts(prods);
         }
       })
       .catch(() => {});
@@ -503,7 +505,7 @@ export default function HomePage() {
                   }}
                 >
                   <img
-                    src={primaryImg}
+                    src={storageUrl(primaryImg)}
                     alt={localize(product, "name")}
                     style={{
                       width: "100%",
