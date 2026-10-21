@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Settings,
   CreditCard,
@@ -16,8 +16,13 @@ import {
   AlertCircle,
   ShieldCheck,
   RefreshCw,
+  UploadCloud,
+  Trash2,
+  Link2,
+  Check,
+  Loader2,
 } from "lucide-react";
-import api from "@/lib/api";
+import api, { storageUrl } from "@/lib/api";
 import { MOCK_SETTINGS, MOCK_FOUNDER } from "@/lib/mockData";
 import { FounderProfile, PublicSettings } from "@/types";
 import { useLanguage } from "@/context/LanguageContext";
@@ -31,6 +36,50 @@ export default function AdminSettingsPage() {
   const [founder, setFounder] = useState<FounderProfile>(MOCK_FOUNDER);
   const [banner, setBanner] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Founder photo upload state
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoUploadError, setPhotoUploadError] = useState<string | null>(null);
+  const [showPhotoUrlInput, setShowPhotoUrlInput] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFounderPhotoUpload = async (file: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setPhotoUploadError(isRTL ? "يرجى اختيار ملف صورة صالح" : "Please select a valid image file");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setPhotoUploadError(isRTL ? "حجم الصورة كبير جداً، الحد الأقصى 10 ميجابايت" : "Image size exceeds 10MB limit");
+      return;
+    }
+
+    setPhotoUploadError(null);
+    setPhotoUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const res = await api.post("/admin/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      if (res.data?.url) {
+        setFounder((prev) => ({ ...prev, photo_path: res.data.url }));
+      } else if (res.data?.path) {
+        setFounder((prev) => ({ ...prev, photo_path: `/storage/${res.data.path}` }));
+      }
+    } catch (err: any) {
+      console.error("Founder photo upload error:", err);
+      setPhotoUploadError(
+        err.response?.data?.message ||
+        (isRTL ? "فشل رفع الصورة من الجهاز" : "Failed to upload photo from device")
+      );
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
 
   // Admin Account & Security Settings
   const [adminName, setAdminName] = useState("");
@@ -745,16 +794,229 @@ export default function AdminSettingsPage() {
               />
             </div>
 
+            {/* Founder Photo Upload from Device */}
             <div>
-              <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "6px" }}>
-                {isRTL ? "رابط الصورة الشخصية" : "Photo URL"}
-              </label>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                <label style={{ fontSize: "0.8125rem", fontWeight: 600 }}>
+                  {isRTL ? "الصورة الشخصية لصاحبة المتجر" : "Owner Photo"}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowPhotoUrlInput(!showPhotoUrlInput)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--color-accent)",
+                    fontSize: "0.75rem",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    padding: 0,
+                  }}
+                >
+                  <Link2 size={13} />
+                  <span>{showPhotoUrlInput ? (isRTL ? "إخفاء إدخال الرابط" : "Hide URL") : (isRTL ? "أو إدخال رابط خارجي" : "Or enter URL")}</span>
+                </button>
+              </div>
+
+              {/* Hidden file input */}
               <input
-                type="text"
-                value={founder.photo_path || ""}
-                onChange={(e) => setFounder({ ...founder, photo_path: e.target.value })}
-                style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--color-border)" }}
+                ref={photoInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    handleFounderPhotoUpload(e.target.files[0]);
+                  }
+                }}
               />
+
+              {founder.photo_path ? (
+                <div
+                  style={{
+                    borderRadius: "10px",
+                    border: "1px solid var(--color-border)",
+                    padding: "10px",
+                    backgroundColor: "var(--color-bg)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "14px",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "70px",
+                      height: "70px",
+                      borderRadius: "50%",
+                      overflow: "hidden",
+                      backgroundColor: "#E2E8F0",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <img
+                      src={storageUrl(founder.photo_path)}
+                      alt="Owner"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          padding: "2px 8px",
+                          borderRadius: "12px",
+                          backgroundColor: "#DCFCE7",
+                          color: "#166534",
+                          fontSize: "0.6875rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <Check size={11} />
+                        {isRTL ? "الصورة محددة" : "Photo Selected"}
+                      </span>
+                    </div>
+                    <p
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "var(--color-text-muted)",
+                        margin: "0 0 8px 0",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {founder.photo_path}
+                    </p>
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        onClick={() => photoInputRef.current?.click()}
+                        disabled={photoUploading}
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: "6px",
+                          border: "1px solid var(--color-border)",
+                          backgroundColor: "#FFFFFF",
+                          color: "var(--color-text)",
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                          cursor: photoUploading ? "not-allowed" : "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "5px",
+                        }}
+                      >
+                        {photoUploading ? <Loader2 size={13} className="animate-spin" /> : <UploadCloud size={13} />}
+                        <span>{photoUploading ? (isRTL ? "جارٍ الرفع..." : "Uploading...") : (isRTL ? "رفع صورة جديدة من الجهاز" : "Upload new from device")}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFounder({ ...founder, photo_path: "" })}
+                        disabled={photoUploading}
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: "6px",
+                          border: "none",
+                          backgroundColor: "#FEE2E2",
+                          color: "#DC2626",
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        <Trash2 size={13} />
+                        <span>{isRTL ? "إزالة" : "Remove"}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  onClick={() => !photoUploading && photoInputRef.current?.click()}
+                  style={{
+                    border: "2px dashed var(--color-border)",
+                    backgroundColor: "var(--color-bg)",
+                    borderRadius: "10px",
+                    padding: "20px 16px",
+                    textAlign: "center",
+                    cursor: photoUploading ? "not-allowed" : "pointer",
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {photoUploading ? (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                      <Loader2 size={24} className="animate-spin" style={{ color: "var(--color-accent)" }} />
+                      <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-accent)" }}>
+                        {isRTL ? "جارٍ رفع الصورة من جهازك..." : "Uploading photo from device..."}
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+                      <div
+                        style={{
+                          width: "40px",
+                          height: "40px",
+                          borderRadius: "50%",
+                          backgroundColor: "rgba(196, 144, 124, 0.12)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "var(--color-accent)",
+                        }}
+                      >
+                        <UploadCloud size={20} />
+                      </div>
+                      <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)" }}>
+                        {isRTL ? "اضغط لاختيار صورة من جهازك" : "Click to select a photo from device"}
+                      </span>
+                      <span style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>
+                        {isRTL ? "يدعم PNG, JPG, WEBP حتى 10MB" : "Supports PNG, JPG, WEBP up to 10MB"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {photoUploadError && (
+                <div
+                  style={{
+                    marginTop: "8px",
+                    padding: "8px 12px",
+                    borderRadius: "6px",
+                    backgroundColor: "#FEE2E2",
+                    color: "#DC2626",
+                    fontSize: "0.8125rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                  <span>{photoUploadError}</span>
+                </div>
+              )}
+
+              {showPhotoUrlInput && (
+                <div style={{ marginTop: "10px" }}>
+                  <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-muted)", marginBottom: "4px" }}>
+                    {isRTL ? "أو الصق رابط الصورة المباشر:" : "Or paste direct image URL:"}
+                  </label>
+                  <input
+                    type="text"
+                    value={founder.photo_path || ""}
+                    onChange={(e) => setFounder({ ...founder, photo_path: e.target.value })}
+                    style={{ width: "100%", padding: "8px 10px", fontSize: "0.8125rem", borderRadius: "6px", border: "1px solid var(--color-border)" }}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>

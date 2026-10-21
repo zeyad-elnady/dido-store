@@ -78,7 +78,8 @@ class SettingController extends Controller
             'founder_name_ar' => 'sometimes|string|max:255',
             'bio_en' => 'nullable|string',
             'bio_ar' => 'nullable|string',
-            'photo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'photo' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:10240',
+            'photo_path' => 'nullable|string|max:1000',
         ]);
 
         $founder = FounderProfile::first();

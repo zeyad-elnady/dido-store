@@ -1,12 +1,27 @@
 "use client";
-
-import { useEffect, useState } from "react";
-import { Layers, Plus, Edit2, Trash2, X, Check } from "lucide-react";
-import api from "@/lib/api";
+import { useEffect, useState, useRef } from "react";
+import {
+  Layers,
+  Plus,
+  Edit2,
+  Trash2,
+  X,
+  Check,
+  UploadCloud,
+  Image as ImageIcon,
+  Loader2,
+  Link2,
+  AlertCircle,
+} from "lucide-react";
+import api, { storageUrl } from "@/lib/api";
 import { Category } from "@/types";
 import { MOCK_CATEGORIES } from "@/lib/mockData";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function AdminCategoriesPage() {
+  const { language } = useLanguage();
+  const isRTL = language === "ar";
+
   const [categories, setCategories] = useState<Category[]>(MOCK_CATEGORIES);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -17,6 +32,13 @@ export default function AdminCategoriesPage() {
   const [imagePath, setImagePath] = useState("");
   const [sortOrder, setSortOrder] = useState("1");
   const [isActive, setIsActive] = useState(true);
+
+  // Device upload state
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchCategories = () => {
     api
@@ -38,9 +60,12 @@ export default function AdminCategoriesPage() {
     setNameEn("");
     setNameAr("");
     setSlug("");
-    setImagePath("https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800");
+    setImagePath("");
     setSortOrder((categories.length + 1).toString());
     setIsActive(true);
+    setUploadError(null);
+    setUploading(false);
+    setShowUrlInput(false);
     setIsModalOpen(true);
   };
 
@@ -52,7 +77,65 @@ export default function AdminCategoriesPage() {
     setImagePath(cat.image_path || "");
     setSortOrder(cat.sort_order.toString());
     setIsActive(cat.is_active);
+    setUploadError(null);
+    setUploading(false);
+    setShowUrlInput(false);
     setIsModalOpen(true);
+  };
+
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setUploadError(isRTL ? "يرجى اختيار ملف صورة صالح (PNG, JPG, WEBP, GIF)" : "Please select a valid image file");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError(isRTL ? "حجم الصورة كبير جداً، الحد الأقصى 10 ميجابايت" : "Image size exceeds 10MB limit");
+      return;
+    }
+
+    setUploadError(null);
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const res = await api.post("/admin/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      if (res.data?.url) {
+        setImagePath(res.data.url);
+      } else if (res.data?.path) {
+        setImagePath(`/storage/${res.data.path}`);
+      }
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      setUploadError(
+        err.response?.data?.message ||
+        (isRTL ? "فشل رفع الصورة من الجهاز، يرجى المحاولة مرة أخرى" : "Failed to upload image from device")
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileUpload(e.dataTransfer.files[0]);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -160,7 +243,7 @@ export default function AdminCategoriesPage() {
           >
             <div style={{ height: "160px", position: "relative", backgroundColor: "#f0f0f0" }}>
               <img
-                src={cat.image_path || "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800"}
+                src={storageUrl(cat.image_path) || "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800"}
                 alt={cat.name_en}
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
@@ -335,16 +418,239 @@ export default function AdminCategoriesPage() {
                 </div>
               </div>
 
+              {/* Cover Image Upload from Device */}
               <div>
-                <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "4px" }}>
-                  Cover Image URL
-                </label>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <label style={{ fontSize: "0.8125rem", fontWeight: 600 }}>
+                    {isRTL ? "صورة غلاف القسم" : "Category Cover Image"}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowUrlInput(!showUrlInput)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "var(--color-accent)",
+                      fontSize: "0.75rem",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      padding: 0,
+                    }}
+                  >
+                    <Link2 size={13} />
+                    <span>{showUrlInput ? (isRTL ? "إخفاء إدخال الرابط" : "Hide URL input") : (isRTL ? "أو إدخال رابط خارجي" : "Or enter external URL")}</span>
+                  </button>
+                </div>
+
+                {/* Hidden File Input for Device Upload */}
                 <input
-                  type="text"
-                  value={imagePath}
-                  onChange={(e) => setImagePath(e.target.value)}
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--color-border)" }}
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      handleFileUpload(e.target.files[0]);
+                    }
+                  }}
                 />
+
+                {/* Upload Preview or Dropzone */}
+                {imagePath ? (
+                  <div
+                    style={{
+                      borderRadius: "10px",
+                      border: "1px solid var(--color-border)",
+                      padding: "10px",
+                      backgroundColor: "var(--color-bg)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "14px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "80px",
+                        height: "80px",
+                        borderRadius: "8px",
+                        overflow: "hidden",
+                        backgroundColor: "#E2E8F0",
+                        flexShrink: 0,
+                        position: "relative",
+                      }}
+                    >
+                      <img
+                        src={storageUrl(imagePath)}
+                        alt="Preview"
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            padding: "2px 8px",
+                            borderRadius: "12px",
+                            backgroundColor: "#DCFCE7",
+                            color: "#166534",
+                            fontSize: "0.6875rem",
+                            fontWeight: 600,
+                          }}
+                        >
+                          <Check size={11} />
+                          {isRTL ? "الصورة محددة" : "Image Selected"}
+                        </span>
+                      </div>
+                      <p
+                        style={{
+                          fontSize: "0.75rem",
+                          color: "var(--color-text-muted)",
+                          margin: "0 0 8px 0",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {imagePath}
+                      </p>
+                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploading}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: "6px",
+                            border: "1px solid var(--color-border)",
+                            backgroundColor: "#FFFFFF",
+                            color: "var(--color-text)",
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            cursor: uploading ? "not-allowed" : "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                          }}
+                        >
+                          {uploading ? <Loader2 size={13} className="animate-spin" /> : <UploadCloud size={13} />}
+                          <span>{uploading ? (isRTL ? "جارٍ الرفع..." : "Uploading...") : (isRTL ? "رفع صورة بديلة من الجهاز" : "Upload new from device")}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setImagePath("")}
+                          disabled={uploading}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: "6px",
+                            border: "none",
+                            backgroundColor: "#FEE2E2",
+                            color: "#DC2626",
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                        >
+                          <Trash2 size={13} />
+                          <span>{isRTL ? "إزالة" : "Remove"}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => !uploading && fileInputRef.current?.click()}
+                    style={{
+                      border: `2px dashed ${isDragging ? "var(--color-accent)" : "var(--color-border)"}`,
+                      backgroundColor: isDragging ? "rgba(196, 144, 124, 0.08)" : "var(--color-bg)",
+                      borderRadius: "10px",
+                      padding: "24px 16px",
+                      textAlign: "center",
+                      cursor: uploading ? "not-allowed" : "pointer",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    {uploading ? (
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                        <Loader2 size={28} className="animate-spin" style={{ color: "var(--color-accent)" }} />
+                        <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-accent)" }}>
+                          {isRTL ? "جارٍ رفع الصورة من جهازك..." : "Uploading image from device..."}
+                        </span>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                        <div
+                          style={{
+                            width: "44px",
+                            height: "44px",
+                            borderRadius: "50%",
+                            backgroundColor: "rgba(196, 144, 124, 0.12)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "var(--color-accent)",
+                          }}
+                        >
+                          <UploadCloud size={22} />
+                        </div>
+                        <div>
+                          <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)" }}>
+                            {isRTL ? "اضغط لاختيار صورة من جهازك" : "Click to select a photo from device"}
+                          </span>
+                          <span style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", display: "block", marginTop: "2px" }}>
+                            {isRTL ? "أو اسحب الصورة وأفلتها هنا (PNG, JPG, WEBP حتى 10MB)" : "or drag and drop here (PNG, JPG, WEBP up to 10MB)"}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Upload Error Alert */}
+                {uploadError && (
+                  <div
+                    style={{
+                      marginTop: "8px",
+                      padding: "8px 12px",
+                      borderRadius: "6px",
+                      backgroundColor: "#FEE2E2",
+                      color: "#DC2626",
+                      fontSize: "0.8125rem",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                    <span>{uploadError}</span>
+                  </div>
+                )}
+
+                {/* Collapsible Manual URL input */}
+                {showUrlInput && (
+                  <div style={{ marginTop: "10px" }}>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "var(--color-text-muted)", marginBottom: "4px" }}>
+                      {isRTL ? "أو الصق رابط الصورة المباشر:" : "Or paste direct image URL:"}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="https://images.unsplash.com/..."
+                      value={imagePath}
+                      onChange={(e) => setImagePath(e.target.value)}
+                      style={{ width: "100%", padding: "8px 10px", fontSize: "0.8125rem", borderRadius: "6px", border: "1px solid var(--color-border)" }}
+                    />
+                  </div>
+                )}
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>

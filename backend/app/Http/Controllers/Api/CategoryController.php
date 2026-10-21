@@ -43,12 +43,16 @@ class CategoryController extends Controller
         $validated = $request->validate([
             'name_en' => 'required|string|max:255',
             'name_ar' => 'nullable|string|max:255',
-            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:10240',
+            'image_path' => 'nullable|string|max:1000',
+            'slug' => 'nullable|string|max:255',
             'sort_order' => 'nullable|integer',
             'is_active' => 'nullable|boolean',
         ]);
 
-        $validated['slug'] = Str::slug($validated['name_en']);
+        if (empty($validated['slug'])) {
+            $validated['slug'] = Str::slug($validated['name_en']);
+        }
 
         // Ensure unique slug
         $originalSlug = $validated['slug'];
@@ -74,12 +78,14 @@ class CategoryController extends Controller
         $validated = $request->validate([
             'name_en' => 'sometimes|string|max:255',
             'name_ar' => 'nullable|string|max:255',
-            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:10240',
+            'image_path' => 'nullable|string|max:1000',
+            'slug' => 'nullable|string|max:255',
             'sort_order' => 'nullable|integer',
             'is_active' => 'nullable|boolean',
         ]);
 
-        if (isset($validated['name_en'])) {
+        if (isset($validated['name_en']) && empty($validated['slug'])) {
             $slug = Str::slug($validated['name_en']);
             $originalSlug = $slug;
             $counter = 1;
@@ -91,7 +97,7 @@ class CategoryController extends Controller
 
         if ($request->hasFile('image')) {
             // Delete old image
-            if ($category->image_path) {
+            if ($category->image_path && !str_starts_with($category->image_path, 'http')) {
                 Storage::disk('public')->delete($category->image_path);
             }
             $validated['image_path'] = $request->file('image')->store('categories', 'public');
