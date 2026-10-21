@@ -16,6 +16,7 @@ import {
   Save,
   Check,
   X,
+  Upload,
 } from "lucide-react";
 import api, { formatPrice, storageUrl } from "@/lib/api";
 import { Order, OrderStatus } from "@/types";
@@ -38,10 +39,12 @@ export default function AdminOrderDetailPage({
   const [statusNote, setStatusNote] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
-  // Customs Fee Update State
-  const [customsFee, setCustomsFee] = useState<string>("0");
-  const [customsReason, setCustomsReason] = useState("");
-  const [updatingCustoms, setUpdatingCustoms] = useState(false);
+  // Admin manual deposit upload state
+  const [adminUploadOpen, setAdminUploadOpen] = useState(false);
+  const [adminDepositAmount, setAdminDepositAmount] = useState("");
+  const [adminDepositMethod, setAdminDepositMethod] = useState<"instapay" | "vodafone_cash" | "telda">("instapay");
+  const [adminReceiptFile, setAdminReceiptFile] = useState<File | null>(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
 
   // Feedback banner
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
@@ -55,7 +58,6 @@ export default function AdminOrderDetailPage({
         if (o && (o.id || o.order_number)) {
           setOrder(o);
           setNewStatus(o.status);
-          setCustomsFee((o.customs_fee ?? 0).toString());
         }
       })
       .catch((err) => {
@@ -64,7 +66,6 @@ export default function AdminOrderDetailPage({
         if (found) {
           setOrder(found);
           setNewStatus(found.status);
-          setCustomsFee(found.customs_fee.toString());
         }
       })
       .finally(() => {
@@ -115,33 +116,38 @@ export default function AdminOrderDetailPage({
     }
   };
 
-  const handleUpdateCustoms = async (e: React.FormEvent) => {
+  const handleAdminUploadReceipt = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!order) return;
-    setUpdatingCustoms(true);
-
-    const feeNum = parseFloat(customsFee) || 0;
+    if (!adminReceiptFile) {
+      alert("Please select a receipt screenshot / image first.");
+      return;
+    }
+    setUploadingReceipt(true);
+    const formData = new FormData();
+    formData.append("amount", adminDepositAmount || Math.round(order.total * 0.5).toString());
+    formData.append("method", adminDepositMethod);
+    formData.append("transfer_date", new Date().toISOString().split("T")[0]);
+    formData.append("screenshot", adminReceiptFile);
 
     try {
-      await api.patch(`/admin/orders/${order.id}/customs-fee`, {
-        customs_fee: feeNum,
-        reason: customsReason || undefined,
+      await api.post(`/orders/${order.order_number}/deposits`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
-      setBannerMessage("Customs fee and total order balance adjusted!");
+      setBannerMessage("Transaction receipt uploaded and linked to order!");
+      setAdminUploadOpen(false);
+      setAdminReceiptFile(null);
+      setAdminDepositAmount("");
       fetchOrderData();
-    } catch {
-      // Offline fallback
-      setBannerMessage("Customs fee updated!");
-      const diff = feeNum - order.customs_fee;
-      setOrder({
-        ...order,
-        customs_fee: feeNum,
-        total: order.total + diff,
-        remaining_balance: (order.remaining_balance || order.total) + diff,
-      });
+    } catch (err: unknown) {
+      console.error("Failed to upload deposit:", err);
+      const msg = err && typeof err === "object" && "response" in err && (err as { response?: { data?: { message?: string } } }).response?.data?.message
+        ? (err as { response: { data: { message: string } } }).response.data.message
+        : "Failed to upload receipt";
+      alert(msg);
     } finally {
-      setUpdatingCustoms(false);
-      setTimeout(() => setBannerMessage(null), 3000);
+      setUploadingReceipt(false);
+      setTimeout(() => setBannerMessage(null), 3500);
     }
   };
 
@@ -393,9 +399,145 @@ export default function AdminOrderDetailPage({
               boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
             }}
           >
-            <h3 style={{ fontSize: "1.125rem", fontWeight: 600, color: "var(--color-text)", marginBottom: "16px" }}>
-              Customer Deposits & Transfer Receipts
-            </h3>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+              <h3 style={{ fontSize: "1.125rem", fontWeight: 600, color: "var(--color-text)", margin: 0 }}>
+                Customer Deposits & Transfer Receipts
+              </h3>
+              <button
+                type="button"
+                onClick={() => setAdminUploadOpen(!adminUploadOpen)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "6px 12px",
+                  backgroundColor: adminUploadOpen ? "var(--color-border)" : "var(--color-accent-light)",
+                  color: adminUploadOpen ? "var(--color-text)" : "var(--color-accent)",
+                  border: "none",
+                  borderRadius: "8px",
+                  fontSize: "0.8125rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                <Upload size={14} />
+                {adminUploadOpen ? "Cancel Upload" : "Upload Receipt Photo"}
+              </button>
+            </div>
+
+            {adminUploadOpen && (
+              <form
+                onSubmit={handleAdminUploadReceipt}
+                style={{
+                  marginBottom: "20px",
+                  padding: "16px",
+                  backgroundColor: "var(--color-bg-alt)",
+                  borderRadius: "12px",
+                  border: "1px solid var(--color-border)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px",
+                }}
+              >
+                <div style={{ fontWeight: 600, fontSize: "0.875rem", color: "var(--color-text)" }}>
+                  Upload Transaction Receipt Photo
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, marginBottom: "4px" }}>
+                      Amount (EGP)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder={(order.total * 0.5).toString()}
+                      value={adminDepositAmount}
+                      onChange={(e) => setAdminDepositAmount(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "8px 10px",
+                        borderRadius: "6px",
+                        border: "1px solid var(--color-border)",
+                        fontSize: "0.875rem",
+                        backgroundColor: "#FFFFFF",
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, marginBottom: "4px" }}>
+                      Payment Method
+                    </label>
+                    <select
+                      value={adminDepositMethod}
+                      onChange={(e) => setAdminDepositMethod(e.target.value as "instapay" | "vodafone_cash" | "telda")}
+                      style={{
+                        width: "100%",
+                        padding: "8px 10px",
+                        borderRadius: "6px",
+                        border: "1px solid var(--color-border)",
+                        fontSize: "0.875rem",
+                        backgroundColor: "#FFFFFF",
+                      }}
+                    >
+                      <option value="instapay">InstaPay</option>
+                      <option value="vodafone_cash">Vodafone Cash</option>
+                      <option value="telda">Telda</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, marginBottom: "4px" }}>
+                    Receipt Photo (JPG, PNG)
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setAdminReceiptFile(e.target.files[0]);
+                      }
+                    }}
+                    style={{ fontSize: "0.8125rem" }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "4px" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdminUploadOpen(false);
+                      setAdminReceiptFile(null);
+                    }}
+                    style={{
+                      padding: "8px 14px",
+                      backgroundColor: "transparent",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "6px",
+                      fontSize: "0.8125rem",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={uploadingReceipt || !adminReceiptFile}
+                    style={{
+                      padding: "8px 16px",
+                      backgroundColor: "var(--color-accent)",
+                      color: "#FFFFFF",
+                      border: "none",
+                      borderRadius: "6px",
+                      fontSize: "0.8125rem",
+                      fontWeight: 600,
+                      cursor: uploadingReceipt || !adminReceiptFile ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {uploadingReceipt ? "Uploading..." : "Save & Link Receipt"}
+                  </button>
+                </div>
+              </form>
+            )}
 
             {(!order.deposits || order.deposits.length === 0) ? (
               <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem" }}>
@@ -408,93 +550,169 @@ export default function AdminOrderDetailPage({
                     key={dep.id}
                     style={{
                       border: "1px solid var(--color-border)",
-                      borderRadius: "10px",
-                      padding: "16px",
+                      borderRadius: "12px",
+                      padding: "18px",
                       display: "flex",
-                      flexWrap: "wrap",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: "12px",
+                      flexDirection: "column",
+                      gap: "14px",
                       backgroundColor: dep.status === "verified" ? "#F0FDF4" : "#FFFFFF",
                     }}
                   >
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <span style={{ fontWeight: 700, fontSize: "1rem" }}>{formatPrice(dep.amount)}</span>
-                        <span
-                          style={{
-                            padding: "3px 8px",
-                            borderRadius: "14px",
-                            fontSize: "0.6875rem",
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            backgroundColor: dep.status === "verified" ? "#DCFCE7" : "#FEF3C7",
-                            color: dep.status === "verified" ? "#166534" : "#92400E",
-                          }}
-                        >
-                          {dep.status}
-                        </span>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: "12px",
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span style={{ fontWeight: 700, fontSize: "1.0625rem" }}>{formatPrice(dep.amount)}</span>
+                          <span
+                            style={{
+                              padding: "3px 10px",
+                              borderRadius: "14px",
+                              fontSize: "0.6875rem",
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              backgroundColor: dep.status === "verified" ? "#DCFCE7" : "#FEF3C7",
+                              color: dep.status === "verified" ? "#166534" : "#92400E",
+                            }}
+                          >
+                            {dep.status}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", marginTop: "4px" }}>
+                          Via {dep.method.replace(/_/g, " ")} • {new Date(dep.transfer_date).toLocaleString("en-EG")}
+                        </div>
                       </div>
-                      <div style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", marginTop: "4px" }}>
-                        Via {dep.method.replace(/_/g, " ")} • {new Date(dep.transfer_date).toLocaleString("en-EG")}
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        {dep.status === "pending" && (
+                          <>
+                            <button
+                              onClick={() => handleVerifyDeposit(dep.id, "verified")}
+                              style={{
+                                padding: "8px 16px",
+                                backgroundColor: "#059669",
+                                color: "#FFFFFF",
+                                border: "none",
+                                borderRadius: "8px",
+                                fontSize: "0.8125rem",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px",
+                              }}
+                            >
+                              <Check size={14} />
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleVerifyDeposit(dep.id, "rejected")}
+                              style={{
+                                padding: "8px 16px",
+                                backgroundColor: "#DC2626",
+                                color: "#FFFFFF",
+                                border: "none",
+                                borderRadius: "8px",
+                                fontSize: "0.8125rem",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px",
+                              }}
+                            >
+                              <X size={14} />
+                              Reject
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      {dep.screenshot_path && (
+                    {/* Receipt Photo Preview */}
+                    {dep.screenshot_path ? (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "16px",
+                          padding: "12px 16px",
+                          backgroundColor: "var(--color-bg-alt)",
+                          borderRadius: "10px",
+                          border: "1px dashed var(--color-border)",
+                        }}
+                      >
                         <a
                           href={storageUrl(dep.screenshot_path)}
                           target="_blank"
-                          rel="noopener"
+                          rel="noopener noreferrer"
+                          title="Click to view full photo"
                           style={{
-                            padding: "6px 12px",
-                            backgroundColor: "var(--color-bg-alt)",
-                            color: "var(--color-text)",
-                            borderRadius: "6px",
-                            fontSize: "0.8125rem",
-                            textDecoration: "none",
-                            fontWeight: 500,
+                            display: "block",
+                            width: "90px",
+                            height: "90px",
+                            borderRadius: "8px",
+                            overflow: "hidden",
+                            flexShrink: 0,
+                            position: "relative",
+                            border: "1px solid var(--color-border)",
+                            boxShadow: "0 2px 6px rgba(0,0,0,0.06)",
+                            cursor: "pointer",
                           }}
                         >
-                          View Receipt
+                          <img
+                            src={storageUrl(dep.screenshot_path)}
+                            alt="Transaction receipt"
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            }}
+                          />
                         </a>
-                      )}
 
-                      {dep.status === "pending" && (
-                        <>
-                          <button
-                            onClick={() => handleVerifyDeposit(dep.id, "verified")}
+                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                          <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)" }}>
+                            Transaction Screenshot Photo
+                          </span>
+                          <span style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
+                            File: {dep.screenshot_path.split("/").pop()}
+                          </span>
+                          <a
+                            href={storageUrl(dep.screenshot_path)}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             style={{
-                              padding: "6px 14px",
-                              backgroundColor: "#059669",
-                              color: "#FFFFFF",
-                              border: "none",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              padding: "5px 12px",
+                              backgroundColor: "#FFFFFF",
+                              color: "var(--color-accent)",
+                              border: "1px solid var(--color-border)",
                               borderRadius: "6px",
                               fontSize: "0.8125rem",
+                              textDecoration: "none",
                               fontWeight: 600,
-                              cursor: "pointer",
+                              width: "fit-content",
                             }}
                           >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => handleVerifyDeposit(dep.id, "rejected")}
-                            style={{
-                              padding: "6px 14px",
-                              backgroundColor: "#DC2626",
-                              color: "#FFFFFF",
-                              border: "none",
-                              borderRadius: "6px",
-                              fontSize: "0.8125rem",
-                              fontWeight: 600,
-                              cursor: "pointer",
-                            }}
-                          >
-                            Reject
-                          </button>
-                        </>
-                      )}
-                    </div>
+                            <ExternalLink size={13} />
+                            View Full Resolution Photo
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", fontStyle: "italic" }}>
+                        No receipt photo attached to this deposit.
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -642,79 +860,7 @@ export default function AdminOrderDetailPage({
             </form>
           </div>
 
-          {/* Customs Fee Adjustment */}
-          <div
-            style={{
-              backgroundColor: "#FFFFFF",
-              borderRadius: "16px",
-              border: "1px solid var(--color-border-light)",
-              padding: "24px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
-            }}
-          >
-            <h3 style={{ fontSize: "1.0625rem", fontWeight: 600, color: "var(--color-text)", marginBottom: "8px" }}>
-              Customs & Clearance Adjustment
-            </h3>
-            <p style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", marginBottom: "14px" }}>
-              Add or update customs clearance fee levied on this shipment. Total order will update automatically.
-            </p>
 
-            <form onSubmit={handleUpdateCustoms} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              <div>
-                <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "4px" }}>
-                  Customs Fee (EGP)
-                </label>
-                <input
-                  type="number"
-                  value={customsFee}
-                  onChange={(e) => setCustomsFee(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "8px",
-                    border: "1px solid var(--color-border)",
-                    fontSize: "0.875rem",
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "4px" }}>
-                  Reason (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Airport inspection surcharge"
-                  value={customsReason}
-                  onChange={(e) => setCustomsReason(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "8px",
-                    border: "1px solid var(--color-border)",
-                    fontSize: "0.875rem",
-                  }}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={updatingCustoms}
-                style={{
-                  padding: "10px",
-                  backgroundColor: "var(--color-text)",
-                  color: "#FFFFFF",
-                  border: "none",
-                  borderRadius: "8px",
-                  fontSize: "0.8125rem",
-                  fontWeight: 600,
-                  cursor: updatingCustoms ? "not-allowed" : "pointer",
-                }}
-              >
-                {updatingCustoms ? "Adjusting..." : "Adjust Customs Fee"}
-              </button>
-            </form>
-          </div>
 
           {/* Financial Summary Card */}
           <div
@@ -739,10 +885,7 @@ export default function AdminOrderDetailPage({
                 <span>Shipping Fee</span>
                 <span>{formatPrice(order.shipping_fee)}</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", color: "var(--color-text-secondary)" }}>
-                <span>Customs Fee</span>
-                <span>{formatPrice(order.customs_fee)}</span>
-              </div>
+
               <div
                 style={{
                   display: "flex",
