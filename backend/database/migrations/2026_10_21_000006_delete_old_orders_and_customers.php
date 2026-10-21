@@ -14,30 +14,31 @@ return new class extends Migration
         Schema::disableForeignKeyConstraints();
 
         // Delete all old orders, deposits, histories, items, and customers
+        // Note: In MySQL InnoDB, TRUNCATE fails if referenced by foreign keys; DELETE must be used.
         // Products and categories are strictly preserved and untouched!
         if (Schema::hasTable('customs_fee_history')) {
-            DB::table('customs_fee_history')->truncate();
+            DB::table('customs_fee_history')->delete();
         }
         if (Schema::hasTable('customs_fee_histories')) {
-            DB::table('customs_fee_histories')->truncate();
+            DB::table('customs_fee_histories')->delete();
         }
         if (Schema::hasTable('order_status_history')) {
-            DB::table('order_status_history')->truncate();
+            DB::table('order_status_history')->delete();
         }
         if (Schema::hasTable('order_status_histories')) {
-            DB::table('order_status_histories')->truncate();
+            DB::table('order_status_histories')->delete();
         }
         if (Schema::hasTable('deposits')) {
-            DB::table('deposits')->truncate();
+            DB::table('deposits')->delete();
         }
         if (Schema::hasTable('order_items')) {
-            DB::table('order_items')->truncate();
+            DB::table('order_items')->delete();
         }
         if (Schema::hasTable('orders')) {
-            DB::table('orders')->truncate();
+            DB::table('orders')->delete();
         }
         if (Schema::hasTable('customers')) {
-            DB::table('customers')->truncate();
+            DB::table('customers')->delete();
         }
 
         Schema::enableForeignKeyConstraints();

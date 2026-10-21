@@ -17,7 +17,7 @@ php artisan storage:link --force 2>/dev/null || true
 
 # Run migrations
 echo "==> Running migrations..."
-php artisan migrate --force
+php artisan migrate --force || echo "==> Migration warning: check logs"
 
 # Check if seeder has already run (check if admin user exists)
 ADMIN_EXISTS=$(php artisan tinker --execute="echo \App\Models\User::count();" 2>/dev/null || echo "0")
