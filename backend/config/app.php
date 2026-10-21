@@ -20,7 +20,7 @@ return [
 
     'cipher' => 'AES-256-CBC',
 
-    'key' => env('APP_KEY', 'base64:uN2R3Q1e2l6aJ8wFvK5yL3zP9rM0bA7sD4fG6hJ8kL='),
+    'key' => env('APP_KEY', 'base64:h/RxCGwLXvukSo/FMxv20ezJfvCOVHb24cWLItvauYk='),
 
     'maintenance' => [
         'driver' => 'file',

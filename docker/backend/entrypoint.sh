@@ -31,12 +31,11 @@ else
     echo "==> Seeders already ran, skipping."
 fi
 
-# Cache config and routes for production
-if [ "$APP_ENV" != "local" ]; then
-    echo "==> Caching config and routes..."
-    php artisan config:cache || true
-    php artisan route:cache || true
-fi
+# Ensure clean cache state
+echo "==> Clearing application cache..."
+php artisan config:clear || true
+php artisan route:clear || true
+php artisan cache:clear || true
 
 echo "==> Starting PHP-FPM..."
 exec "$@"

@@ -55,6 +55,7 @@ RUN mkdir -p storage/framework/cache/data \
              storage/framework/views \
              storage/logs \
              bootstrap/cache \
+    && chown -R www:www storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
 # Generate optimized autoloader
