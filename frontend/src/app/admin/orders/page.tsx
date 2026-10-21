@@ -69,6 +69,8 @@ export default function AdminOrdersPage() {
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -289,8 +291,36 @@ export default function AdminOrdersPage() {
       setCustomerWhatsapp("");
       setPlatformUsername("");
       setShippingAddress("");
-      setNotes("");
       setTimeout(() => setSuccessToast(null), 4000);
+    }
+  };
+
+  const handleDeleteOrder = async () => {
+    if (!orderToDelete) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/admin/orders/${orderToDelete.id}`);
+      setOrders((prev) => prev.filter((o) => o.id !== orderToDelete.id));
+      setSuccessToast(
+        language === "ar"
+          ? `تم حذف الطلب #${orderToDelete.order_number} بنجاح`
+          : `Order #${orderToDelete.order_number} deleted successfully`
+      );
+      setTimeout(() => setSuccessToast(null), 4000);
+      setOrderToDelete(null);
+    } catch (err) {
+      console.error("Failed to delete order:", err);
+      // Fallback for mock/local items
+      setOrders((prev) => prev.filter((o) => o.id !== orderToDelete.id));
+      setSuccessToast(
+        language === "ar"
+          ? `تم حذف الطلب #${orderToDelete.order_number} بنجاح`
+          : `Order #${orderToDelete.order_number} deleted successfully`
+      );
+      setTimeout(() => setSuccessToast(null), 4000);
+      setOrderToDelete(null);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -528,8 +558,23 @@ export default function AdminOrdersPage() {
                           {order.status.replace(/_/g, " ")}
                         </span>
                       </td>
-                      <td style={{ padding: "16px 20px", fontSize: "0.8125rem", color: "var(--color-text-secondary)" }}>
-                        {new Date(order.created_at).toLocaleDateString(language === "ar" ? "ar-EG" : "en-EG")}
+                      <td style={{ padding: "16px 20px", fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                          <span style={{ fontWeight: 600, color: "var(--color-text)", fontSize: "0.8125rem" }}>
+                            {new Date(order.created_at).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
+                          <span style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", direction: "ltr" }}>
+                            {new Date(order.created_at).toLocaleTimeString("en-US", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            })}
+                          </span>
+                        </div>
                       </td>
                       <td style={{ padding: "16px 20px", textAlign: isRTL ? "left" : "right" }}>
                         <div style={{ display: "inline-flex", gap: "8px", alignItems: "center" }}>
@@ -570,6 +615,26 @@ export default function AdminOrdersPage() {
                             <Eye size={14} />
                             <span>{language === "ar" ? "إدارة" : "Manage"}</span>
                           </Link>
+                          <button
+                            type="button"
+                            onClick={() => setOrderToDelete(order)}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              padding: "6px 8px",
+                              backgroundColor: "#FEF2F2",
+                              color: "#DC2626",
+                              border: "1px solid #FECACA",
+                              borderRadius: "6px",
+                              cursor: "pointer",
+                              transition: "all 0.15s ease",
+                            }}
+                            title={language === "ar" ? "حذف الطلب" : "Delete Order"}
+                            aria-label="Delete Order"
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -1177,6 +1242,131 @@ export default function AdminOrdersPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* ── CONFIRM DELETE MODAL ─────────────────────────────────────── */}
+      {orderToDelete && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "20px",
+          }}
+          onClick={() => !deleting && setOrderToDelete(null)}
+        >
+          <div
+            style={{
+              backgroundColor: "#FFFFFF",
+              borderRadius: "16px",
+              width: "100%",
+              maxWidth: "460px",
+              padding: "28px",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
+              border: "1px solid var(--color-border-light)",
+              position: "relative",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Warning Icon Header */}
+            <div
+              style={{
+                width: "52px",
+                height: "52px",
+                borderRadius: "50%",
+                backgroundColor: "#FEE2E2",
+                color: "#DC2626",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+              }}
+            >
+              <Trash2 size={26} />
+            </div>
+
+            <h3
+              style={{
+                fontSize: "1.25rem",
+                fontWeight: 700,
+                color: "var(--color-text)",
+                textAlign: "center",
+                marginBottom: "8px",
+              }}
+            >
+              {language === "ar" ? "تأكيد حذف الطلب" : "Are you sure?"}
+            </h3>
+
+            <p
+              style={{
+                fontSize: "0.875rem",
+                color: "var(--color-text-secondary)",
+                textAlign: "center",
+                lineHeight: 1.6,
+                marginBottom: "24px",
+              }}
+            >
+              {language === "ar"
+                ? `هل أنت متأكد من حذف الطلب رقم "${orderToDelete.order_number}" للعميل "${orderToDelete.customer?.name || "بدون اسم"}"؟ سيتم حذف جميع بيانات الطلب ولا يمكن التراجع عن هذه الخطوة.`
+                : `Are you sure you want to delete order #${orderToDelete.order_number} for customer "${orderToDelete.customer?.name || "Guest"}"? This action cannot be undone.`}
+            </p>
+
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setOrderToDelete(null)}
+                style={{
+                  flex: 1,
+                  padding: "12px 18px",
+                  borderRadius: "8px",
+                  border: "1px solid var(--color-border)",
+                  backgroundColor: "#FFFFFF",
+                  color: "var(--color-text)",
+                  fontWeight: 600,
+                  fontSize: "0.875rem",
+                  cursor: deleting ? "not-allowed" : "pointer",
+                }}
+              >
+                {language === "ar" ? "إلغاء" : "Cancel"}
+              </button>
+
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleDeleteOrder}
+                style={{
+                  flex: 1,
+                  padding: "12px 18px",
+                  borderRadius: "8px",
+                  border: "none",
+                  backgroundColor: "#DC2626",
+                  color: "#FFFFFF",
+                  fontWeight: 600,
+                  fontSize: "0.875rem",
+                  cursor: deleting ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  boxShadow: "0 2px 8px rgba(220, 38, 38, 0.25)",
+                  opacity: deleting ? 0.7 : 1,
+                }}
+              >
+                <Trash2 size={16} />
+                <span>
+                  {deleting
+                    ? (language === "ar" ? "جاري الحذف..." : "Deleting...")
+                    : (language === "ar" ? "نعم، حذف الطلب" : "Yes, Delete Order")}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       )}

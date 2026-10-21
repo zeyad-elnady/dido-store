@@ -17,6 +17,7 @@ import {
   Check,
   X,
   Upload,
+  Trash2,
 } from "lucide-react";
 import api, { formatPrice, storageUrl, getProductImageForColor } from "@/lib/api";
 import { Order, OrderStatus } from "@/types";
@@ -46,8 +47,24 @@ export default function AdminOrderDetailPage({
   const [adminReceiptFile, setAdminReceiptFile] = useState<File | null>(null);
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
 
+  // Delete modal state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   // Feedback banner
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
+
+  const handleDeleteOrder = async () => {
+    if (!order) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/admin/orders/${order.id}`);
+      router.push("/admin/orders");
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Failed to delete order");
+      setDeleting(false);
+    }
+  };
 
   const fetchOrderData = () => {
     setLoading(true);
@@ -264,37 +281,73 @@ export default function AdminOrderDetailPage({
               {order.status.replace(/_/g, " ")}
             </span>
           </div>
-          <p style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)", marginTop: "6px", margin: 0 }}>
-            Registered on {new Date(order.created_at).toLocaleString("en-EG")}
+          <p style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)", marginTop: "6px", margin: 0, direction: "ltr" }}>
+            Registered on{" "}
+            {new Date(order.created_at).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })}{" "}
+            at{" "}
+            {new Date(order.created_at).toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            })}
           </p>
         </div>
 
-        {/* WhatsApp Direct Action */}
-        {customerWhatsapp && (
-          <a
-            href={`https://wa.me/${customerWhatsapp.replace(/\+/g, "").replace(/\s/g, "")}?text=${encodeURIComponent(
-              `Hello ${order.customer?.name || ""}, this is Dido Store regarding your order #${order.order_number}.`
-            )}`}
-            target="_blank"
-            rel="noopener noreferrer"
+        <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+          {/* WhatsApp Direct Action */}
+          {customerWhatsapp && (
+            <a
+              href={`https://wa.me/${customerWhatsapp.replace(/\+/g, "").replace(/\s/g, "")}?text=${encodeURIComponent(
+                `Hello ${order.customer?.name || ""}, this is Dido Store regarding your order #${order.order_number}.`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "10px 18px",
+                backgroundColor: "#25D366",
+                color: "#FFFFFF",
+                borderRadius: "8px",
+                fontWeight: 600,
+                fontSize: "0.875rem",
+                textDecoration: "none",
+                boxShadow: "0 4px 12px rgba(37, 211, 102, 0.3)",
+              }}
+            >
+              <MessageCircle size={18} />
+              <span>WhatsApp Customer</span>
+            </a>
+          )}
+
+          {/* Delete Order Action */}
+          <button
+            type="button"
+            onClick={() => setIsDeleteModalOpen(true)}
             style={{
               display: "inline-flex",
               alignItems: "center",
               gap: "8px",
-              padding: "12px 20px",
-              backgroundColor: "#25D366",
-              color: "#FFFFFF",
+              padding: "10px 16px",
+              backgroundColor: "#FEF2F2",
+              color: "#DC2626",
+              border: "1px solid #FECACA",
               borderRadius: "8px",
               fontWeight: 600,
-              fontSize: "0.9375rem",
-              textDecoration: "none",
-              boxShadow: "0 4px 12px rgba(37, 211, 102, 0.3)",
+              fontSize: "0.875rem",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
             }}
           >
-            <MessageCircle size={18} />
-            <span>Chat with Customer on WhatsApp</span>
-          </a>
-        )}
+            <Trash2 size={16} />
+            <span>Delete Order</span>
+          </button>
+        </div>
       </div>
 
       {bannerMessage && (
@@ -587,8 +640,18 @@ export default function AdminOrderDetailPage({
                             {dep.status}
                           </span>
                         </div>
-                        <div style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", marginTop: "4px" }}>
-                          Via {dep.method.replace(/_/g, " ")} • {new Date(dep.transfer_date).toLocaleString("en-EG")}
+                        <div style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", marginTop: "4px", direction: "ltr" }}>
+                          Via {dep.method.replace(/_/g, " ")} •{" "}
+                          {new Date(dep.transfer_date).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}{" "}
+                          {new Date(dep.transfer_date).toLocaleTimeString("en-US", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true,
+                          })}
                         </div>
                       </div>
 
@@ -764,8 +827,18 @@ export default function AdminOrderDetailPage({
                           {hist.note}
                         </p>
                       )}
-                      <span style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>
-                        {new Date(hist.created_at).toLocaleString("en-EG")}
+                      <span style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", direction: "ltr" }}>
+                        {new Date(hist.created_at).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}{" "}
+                        at{" "}
+                        {new Date(hist.created_at).toLocaleTimeString("en-US", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: true,
+                        })}
                       </span>
                     </div>
                   </div>
@@ -940,6 +1013,125 @@ export default function AdminOrderDetailPage({
           </div>
         </div>
       </div>
+
+      {/* ── CONFIRM DELETE MODAL ─────────────────────────────────────── */}
+      {isDeleteModalOpen && order && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "20px",
+          }}
+          onClick={() => !deleting && setIsDeleteModalOpen(false)}
+        >
+          <div
+            style={{
+              backgroundColor: "#FFFFFF",
+              borderRadius: "16px",
+              width: "100%",
+              maxWidth: "460px",
+              padding: "28px",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
+              border: "1px solid var(--color-border-light)",
+              position: "relative",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                width: "52px",
+                height: "52px",
+                borderRadius: "50%",
+                backgroundColor: "#FEE2E2",
+                color: "#DC2626",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+              }}
+            >
+              <Trash2 size={26} />
+            </div>
+
+            <h3
+              style={{
+                fontSize: "1.25rem",
+                fontWeight: 700,
+                color: "var(--color-text)",
+                textAlign: "center",
+                marginBottom: "8px",
+              }}
+            >
+              Are you sure?
+            </h3>
+
+            <p
+              style={{
+                fontSize: "0.875rem",
+                color: "var(--color-text-secondary)",
+                textAlign: "center",
+                lineHeight: 1.6,
+                marginBottom: "24px",
+              }}
+            >
+              Are you sure you want to delete order #{order.order_number} for customer &quot;{order.customer?.name || "Guest"}&quot;? All associated records will be deleted and this action cannot be undone.
+            </p>
+
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setIsDeleteModalOpen(false)}
+                style={{
+                  flex: 1,
+                  padding: "12px 18px",
+                  borderRadius: "8px",
+                  border: "1px solid var(--color-border)",
+                  backgroundColor: "#FFFFFF",
+                  color: "var(--color-text)",
+                  fontWeight: 600,
+                  fontSize: "0.875rem",
+                  cursor: deleting ? "not-allowed" : "pointer",
+                }}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleDeleteOrder}
+                style={{
+                  flex: 1,
+                  padding: "12px 18px",
+                  borderRadius: "8px",
+                  border: "none",
+                  backgroundColor: "#DC2626",
+                  color: "#FFFFFF",
+                  fontWeight: 600,
+                  fontSize: "0.875rem",
+                  cursor: deleting ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  boxShadow: "0 2px 8px rgba(220, 38, 38, 0.25)",
+                  opacity: deleting ? 0.7 : 1,
+                }}
+              >
+                <Trash2 size={16} />
+                <span>{deleting ? "Deleting..." : "Yes, Delete Order"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         @media (max-width: 960px) {

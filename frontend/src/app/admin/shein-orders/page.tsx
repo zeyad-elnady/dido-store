@@ -198,7 +198,7 @@ export default function SheinOrdersCalculatorPage() {
     if (selectedOrders.length === 0) return;
 
     let text = `📦 DIDO STORE — SHEIN BATCH ORDER SHEET\n`;
-    text += `Date: ${new Date().toLocaleDateString("en-EG")}\n`;
+    text += `Date: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })} ${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })}\n`;
     text += `Selected Orders (${calculations.orderCount}): ${selectedOrders.map((o) => o.order_number).join(", ")}\n`;
     text += `Total Pieces: ${calculations.totalItemCount}\n\n`;
     text += `ITEMS TO ORDER:\n`;
@@ -620,8 +620,18 @@ export default function SheinOrdersCalculatorPage() {
                             {order.status.replace(/_/g, " ")}
                           </span>
                         </div>
-                        <div style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", marginTop: "2px" }}>
-                          {order.customer?.name || "Customer"} • {order.customer?.phone || ""} • {new Date(order.created_at).toLocaleDateString("en-EG")}
+                        <div style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", marginTop: "2px", direction: "ltr" }}>
+                          {order.customer?.name || "Customer"} • {order.customer?.phone || ""} •{" "}
+                          {new Date(order.created_at).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}{" "}
+                          {new Date(order.created_at).toLocaleTimeString("en-US", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true,
+                          })}
                         </div>
                       </div>
                     </div>
