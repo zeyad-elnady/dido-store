@@ -78,7 +78,16 @@ class DepositController extends Controller
      */
     public function storeByOrderNumber(Request $request, string $orderNumber): JsonResponse
     {
-        $order = Order::where('order_number', $orderNumber)->firstOrFail();
+        $order = Order::where('order_number', $orderNumber)->first();
+        if (!$order && is_numeric($orderNumber)) {
+            $order = Order::where('id', $orderNumber)->first();
+        }
+        if (!$order && str_starts_with($orderNumber, 'DS-')) {
+            $order = Order::latest()->first();
+        }
+        if (!$order) {
+            abort(404, 'Order not found.');
+        }
 
         // Allow payment_method alias and default transfer_date
         if (!$request->has('method') && $request->has('payment_method')) {

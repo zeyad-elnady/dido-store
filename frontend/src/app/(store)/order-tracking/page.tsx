@@ -78,53 +78,19 @@ function OrderTrackingContent() {
 
     try {
       const res = await api.get(`/orders/${num}/track`);
-      if (res.data?.data) {
-        setOrder(res.data.data);
-        const dep = Math.round((res.data.data.total || 0) * 0.5);
+      const orderData = res.data?.data || res.data;
+      if (orderData && (orderData.order_number || orderData.id)) {
+        setOrder(orderData);
+        const totalNum = typeof orderData.total === "string" ? parseFloat(orderData.total) : (orderData.total || 0);
+        const dep = Math.round(totalNum * 0.5);
         setDepositAmount(dep.toString());
-      }
-    } catch {
-      // Fallback search in mock orders or generate simulated order tracking
-      const found = MOCK_ORDERS.find((o) => o.order_number.toLowerCase() === num.toLowerCase());
-      if (found) {
-        setOrder(found);
-        setDepositAmount(Math.round(found.total * 0.5).toString());
-      } else if (num.startsWith("DS-")) {
-        // Create simulated active order for new submission
-        const simOrder: Order = {
-          id: 99,
-          order_number: num,
-          customer_id: 1,
-          status: "pending",
-          subtotal: 1850,
-          shipping_fee: 70,
-          customs_fee: 0,
-          discount_amount: 0,
-          total: 1920,
-          shipping_address: language === "ar" ? "تم تسجيل عنوان التوصيل" : "Delivery address submitted",
-          notes: null,
-          remaining_balance: 1920,
-          verified_deposits_amount: 0,
-          status_history: [
-            {
-              id: 1,
-              order_id: 99,
-              old_status: null,
-              new_status: "pending",
-              changed_by: null,
-              note: language === "ar" ? "تم تسجيل الطلب وبانتظار إيصال تحويل العربون." : "Order created. Awaiting transfer screenshot.",
-              created_at: new Date().toISOString(),
-            },
-          ],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        setOrder(simOrder);
-        setDepositAmount("960");
       } else {
         setError(language === "ar" ? `لم يتم العثور على طلب برقم "${num}". يرجى التأكد من الرقم والمحاولة مرة أخرى.` : `No order found with number "${num}". Please double-check and try again.`);
         setOrder(null);
       }
+    } catch {
+      setError(language === "ar" ? `لم يتم العثور على طلب برقم "${num}". يرجى التأكد من الرقم والمحاولة مرة أخرى.` : `No order found with number "${num}". Please double-check and try again.`);
+      setOrder(null);
     } finally {
       setLoading(false);
     }

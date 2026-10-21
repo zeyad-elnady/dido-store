@@ -51,21 +51,21 @@ export default function AdminOrderDetailPage({
     api
       .get(`/admin/orders/${orderId}`)
       .then((res) => {
-        if (res.data?.data) {
-          const o = res.data.data;
+        const o = res.data?.data || res.data;
+        if (o && (o.id || o.order_number)) {
           setOrder(o);
           setNewStatus(o.status);
-          setCustomsFee(o.customs_fee.toString());
+          setCustomsFee((o.customs_fee ?? 0).toString());
         }
       })
-      .catch(() => {
-        // Fallback to mock order
-        const found =
-          MOCK_ORDERS.find((o) => o.id.toString() === orderId) ||
-          MOCK_ORDERS[0];
-        setOrder(found);
-        setNewStatus(found.status);
-        setCustomsFee(found.customs_fee.toString());
+      .catch((err) => {
+        console.error("Failed to load order:", err);
+        const found = MOCK_ORDERS.find((o) => o.id.toString() === orderId);
+        if (found) {
+          setOrder(found);
+          setNewStatus(found.status);
+          setCustomsFee(found.customs_fee.toString());
+        }
       })
       .finally(() => {
         setLoading(false);
@@ -162,10 +162,22 @@ export default function AdminOrderDetailPage({
     }
   };
 
-  if (loading || !order) {
+  if (loading) {
     return (
       <div style={{ padding: "60px", textAlign: "center" }}>
         <p style={{ color: "var(--color-text-secondary)" }}>Loading order details...</p>
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div style={{ padding: "60px", textAlign: "center" }}>
+        <h3 style={{ fontSize: "1.25rem", color: "var(--color-text)", marginBottom: "8px" }}>Order Not Found</h3>
+        <p style={{ color: "var(--color-text-secondary)", marginBottom: "16px" }}>The requested order (#{orderId}) could not be found.</p>
+        <Link href="/admin/orders" style={{ color: "var(--color-accent)", textDecoration: "underline" }}>
+          Back to All Orders
+        </Link>
       </div>
     );
   }

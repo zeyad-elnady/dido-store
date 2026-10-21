@@ -116,14 +116,18 @@ export default function CheckoutPage() {
 
     try {
       const res = await api.post("/orders", payload);
-      const orderNumber = res.data?.data?.order_number || `DS-${Math.floor(1000 + Math.random() * 9000)}`;
+      const orderData = res.data?.data || res.data;
+      const orderNumber = orderData?.order_number;
+      if (orderNumber) {
+        clearCart();
+        router.push(`/order-tracking?order=${orderNumber}&new=1`);
+        return;
+      }
       clearCart();
-      router.push(`/order-tracking?order=${orderNumber}&new=1`);
-    } catch {
-      // Fallback simulation order number if offline
-      const mockOrderNumber = `DS-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-      clearCart();
-      router.push(`/order-tracking?order=${mockOrderNumber}&new=1`);
+      router.push(`/order-tracking?new=1`);
+    } catch (err: any) {
+      console.error("Order creation error:", err);
+      alert(language === "ar" ? "حدث خطأ أثناء إتمام الطلب، يرجى المحاولة مرة أخرى." : "An error occurred while placing the order. Please try again.");
     } finally {
       setSubmitting(false);
     }

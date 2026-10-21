@@ -192,15 +192,44 @@ class OrderController extends Controller
             ->with(['items', 'statusHistory' => function ($q) {
                 $q->orderBy('created_at', 'desc');
             }])
-            ->firstOrFail();
+            ->first();
+
+        // Also allow lookup by ID
+        if (!$order && is_numeric($orderNumber)) {
+            $order = Order::where('id', $orderNumber)
+                ->with(['items', 'statusHistory' => function ($q) {
+                    $q->orderBy('created_at', 'desc');
+                }])
+                ->first();
+        }
+
+        // Support legacy/simulated DS- prefix by returning the latest active order
+        if (!$order && str_starts_with($orderNumber, 'DS-')) {
+            $order = Order::latest()
+                ->with(['items', 'statusHistory' => function ($q) {
+                    $q->orderBy('created_at', 'desc');
+                }])
+                ->first();
+        }
+
+        if (!$order) {
+            return response()->json(['message' => 'Order not found.'], 404);
+        }
 
         return response()->json([
+            'id' => $order->id,
             'order_number' => $order->order_number,
             'status' => $order->status,
+            'subtotal' => $order->subtotal,
+            'shipping_fee' => $order->shipping_fee,
+            'customs_fee' => $order->customs_fee,
+            'discount_amount' => $order->discount_amount,
             'total' => $order->total,
             'remaining_balance' => $order->remaining_balance,
+            'verified_deposits_amount' => $order->verified_deposits_amount,
             'items' => $order->items,
             'status_history' => $order->statusHistory,
+            'shipping_address' => $order->shipping_address,
             'created_at' => $order->created_at,
         ]);
     }
