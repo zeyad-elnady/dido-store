@@ -120,8 +120,8 @@ export const TRANSLATIONS: TranslationDictionary = {
     ar: "شحن لجميع المحافظات",
   },
   feature_delivery_desc: {
-    en: "Direct delivery to Cairo, Giza, Alexandria, Delta, and Upper Egypt within 10–18 business days.",
-    ar: "توصيل آمن للقاهرة، الجيزة، الإسكندرية وجميع المحافظات خلال 10 إلى 18 يوم عمل.",
+    en: "Direct delivery to Cairo, Giza, Alexandria, Delta, and Upper Egypt within 5–12 business days.",
+    ar: "توصيل آمن للقاهرة، الجيزة، الإسكندرية وجميع المحافظات خلال 5 إلى 12 يوم عمل.",
   },
   feature_support_title: {
     en: "Direct WhatsApp Support",

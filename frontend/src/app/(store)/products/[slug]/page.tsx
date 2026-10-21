@@ -1100,8 +1100,8 @@ export default function ProductDetailPage({
                 </h5>
                 <p style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", margin: "2px 0 0" }}>
                   {language === "ar"
-                    ? "من 10 إلى 14 يوم عمل لباب بيتك في جميع المحافظات."
-                    : "10-14 days from international dispatch to your doorstep anywhere in Egypt."}
+                    ? "من 5 إلى 12 يوم عمل لباب بيتك في جميع المحافظات."
+                    : "5-12 business days from international dispatch to your doorstep anywhere in Egypt."}
                 </p>
               </div>
             </div>
