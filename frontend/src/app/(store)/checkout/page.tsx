@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { EGYPT_GOVERNORATES, DEFAULT_GOVERNORATE_SHIPPING_RATES, getShippingFeeForGovernorate } from "@/lib/translations";
-import api, { storageUrl } from "@/lib/api";
+import api, { storageUrl, getProductImageForColor } from "@/lib/api";
 import {
   ShoppingBag,
   ArrowRight,
@@ -1242,9 +1242,9 @@ export default function CheckoutPage() {
             {/* List */}
             <div style={{ display: "flex", flexDirection: "column", gap: "16px", maxHeight: "280px", overflowY: "auto", paddingRight: "4px" }}>
               {items.map((item, idx) => {
+                const chosenImage = getProductImageForColor(item.product, item.color);
                 const img =
-                  item.product.images?.find((i) => i.is_primary)?.image_path ||
-                  item.product.images?.[0]?.image_path ||
+                  chosenImage ||
                   "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=200";
                 const unitPrice = item.product.discount_price ?? item.product.selling_price;
 

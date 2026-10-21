@@ -21,7 +21,7 @@ import {
   MapPin,
   CreditCard,
 } from "lucide-react";
-import api, { formatPrice } from "@/lib/api";
+import api, { formatPrice, storageUrl, getProductImageForColor } from "@/lib/api";
 import { Order, OrderStatus, Product } from "@/types";
 import { MOCK_ORDERS, MOCK_PRODUCTS } from "@/lib/mockData";
 import { EGYPT_GOVERNORATES } from "@/lib/translations";
@@ -907,6 +907,7 @@ export default function AdminOrdersPage() {
                       {itemsDraft.map((item, idx) => {
                         const prod = products.find((p) => p.id === item.productId);
                         const price = prod?.discount_price ?? prod?.selling_price ?? 0;
+                        const itemImg = getProductImageForColor(prod, item.color);
 
                         return (
                           <div
@@ -922,6 +923,20 @@ export default function AdminOrdersPage() {
                             }}
                           >
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+                              {itemImg && (
+                                <img
+                                  src={storageUrl(itemImg)}
+                                  alt={prod?.name_en || ""}
+                                  style={{
+                                    width: "36px",
+                                    height: "36px",
+                                    borderRadius: "6px",
+                                    objectFit: "cover",
+                                    border: "1px solid var(--color-border)",
+                                    flexShrink: 0,
+                                  }}
+                                />
+                              )}
                               <select
                                 value={item.productId}
                                 onChange={(e) => handleUpdateItem(idx, "productId", e.target.value)}

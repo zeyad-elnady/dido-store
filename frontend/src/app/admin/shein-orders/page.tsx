@@ -25,7 +25,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import api, { formatPrice, storageUrl } from "@/lib/api";
+import api, { formatPrice, storageUrl, getProductImageForColor } from "@/lib/api";
 import { useLanguage } from "@/context/LanguageContext";
 import { Order, OrderItem } from "@/types";
 import { MOCK_ORDERS } from "@/lib/mockData";
@@ -665,8 +665,7 @@ export default function SheinOrdersCalculatorPage() {
                         const itemSheinTotal = sheinUnitCost * itemQty;
                         const itemProfit = itemCustomerTotal - itemSheinTotal;
 
-                        const primaryImg = item.product?.images?.find((img) => img.is_primary)?.image_path ||
-                          item.product?.images?.[0]?.image_path;
+                        const itemImg = getProductImageForColor(item.product, item.color);
 
                         return (
                           <div
@@ -693,9 +692,9 @@ export default function SheinOrdersCalculatorPage() {
                                 flexShrink: 0,
                               }}
                             >
-                              {primaryImg ? (
+                              {itemImg ? (
                                 <img
-                                  src={storageUrl(primaryImg)}
+                                  src={storageUrl(itemImg)}
                                   alt={item.product_name}
                                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
                                 />

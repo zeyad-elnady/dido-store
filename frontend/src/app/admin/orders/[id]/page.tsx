@@ -18,7 +18,7 @@ import {
   X,
   Upload,
 } from "lucide-react";
-import api, { formatPrice, storageUrl } from "@/lib/api";
+import api, { formatPrice, storageUrl, getProductImageForColor } from "@/lib/api";
 import { Order, OrderStatus } from "@/types";
 import { MOCK_ORDERS } from "@/lib/mockData";
 
@@ -344,48 +344,51 @@ export default function AdminOrderDetailPage({
             </h3>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {(order.items || []).map((item, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    display: "flex",
-                    gap: "16px",
-                    paddingBottom: "16px",
-                    borderBottom: "1px solid var(--color-border-light)",
-                  }}
-                >
+              {(order.items || []).map((item, idx) => {
+                const itemImg = getProductImageForColor(item.product, item.color);
+                return (
                   <div
+                    key={idx}
                     style={{
-                      width: "72px",
-                      height: "90px",
-                      borderRadius: "8px",
-                      backgroundColor: "#f5f5f5",
-                      overflow: "hidden",
-                      flexShrink: 0,
+                      display: "flex",
+                      gap: "16px",
+                      paddingBottom: "16px",
+                      borderBottom: "1px solid var(--color-border-light)",
                     }}
                   >
-                    <img
-                      src={
-                        item.product?.images?.[0]?.image_path ||
-                        "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=300"
-                      }
-                      alt={item.product_name}
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <h4 style={{ fontSize: "0.9375rem", fontWeight: 600, color: "var(--color-text)", margin: 0 }}>
-                      {item.product_name}
-                    </h4>
-                    <div style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", marginTop: "4px" }}>
-                      Size: <strong>{item.size || "Standard"}</strong> • Color: <strong>{item.color || "Standard"}</strong> • Qty: <strong>{item.quantity}</strong>
+                    <div
+                      style={{
+                        width: "72px",
+                        height: "90px",
+                        borderRadius: "8px",
+                        backgroundColor: "#f5f5f5",
+                        overflow: "hidden",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <img
+                        src={
+                          storageUrl(itemImg) ||
+                          "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=300"
+                        }
+                        alt={item.product_name}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
                     </div>
-                    <div style={{ fontSize: "0.9375rem", fontWeight: 700, color: "var(--color-text)", marginTop: "8px" }}>
-                      {formatPrice(item.line_total || item.unit_price * item.quantity)}
+                    <div style={{ flex: 1 }}>
+                      <h4 style={{ fontSize: "0.9375rem", fontWeight: 600, color: "var(--color-text)", margin: 0 }}>
+                        {item.product_name}
+                      </h4>
+                      <div style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", marginTop: "4px" }}>
+                        Size: <strong>{item.size || "Standard"}</strong> • Color: <strong>{item.color || "Standard"}</strong> • Qty: <strong>{item.quantity}</strong>
+                      </div>
+                      <div style={{ fontSize: "0.9375rem", fontWeight: 700, color: "var(--color-text)", marginTop: "8px" }}>
+                        {formatPrice(item.line_total || item.unit_price * item.quantity)}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

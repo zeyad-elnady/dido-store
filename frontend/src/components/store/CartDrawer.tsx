@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { X, Trash2, ArrowRight, ArrowLeft, ShoppingBag } from "lucide-react";
-import { storageUrl } from "@/lib/api";
+import { storageUrl, getProductImageForColor } from "@/lib/api";
 
 export default function CartDrawer() {
   const { items, isCartOpen, setIsCartOpen, updateQuantity, removeFromCart, subtotal, totalItems } = useCart();
@@ -121,10 +121,8 @@ export default function CartDrawer() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
               {items.map((item, index) => {
-                const primaryImage =
-                  item.product.images?.find((img) => img.is_primary)?.image_path ||
-                  item.product.images?.[0]?.image_path ||
-                  "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=300";
+                const chosenImage = getProductImageForColor(item.product, item.color);
+                const primaryImage = chosenImage || "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=300";
                 const unitPrice = item.product.discount_price ?? item.product.selling_price;
 
                 return (
