@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
@@ -21,6 +21,7 @@ import {
   Check,
   Maximize2,
   X,
+  UploadCloud,
 } from "lucide-react";
 import { MOCK_SETTINGS } from "@/lib/mockData";
 
@@ -50,10 +51,47 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Deposit Instructions State
+  // Deposit Instructions & Proof Upload State
   const [activeDepositTab, setActiveDepositTab] = useState<"instapay" | "wallet" | "telda">("instapay");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const depositFileInputRef = useRef<HTMLInputElement>(null);
+  const depositSectionRef = useRef<HTMLDivElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setFileError(language === "ar" ? "يرجى اختيار ملف صورة صالح (JPG, PNG, WEBP)" : "Please select a valid image file (JPG, PNG, WEBP)");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setFileError(language === "ar" ? "حجم الصورة كبير جداً (الحد الأقصى 5 ميجابايت)" : "File size is too large (Max 5MB)");
+      return;
+    }
+
+    setFileError(null);
+    setScreenshotFile(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setScreenshotPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearScreenshot = () => {
+    setScreenshotFile(null);
+    setScreenshotPreview(null);
+    setFileError(null);
+    if (depositFileInputRef.current) {
+      depositFileInputRef.current.value = "";
+    }
+  };
 
   // Dynamic Shipping Settings State
   const [shippingRates, setShippingRates] = useState<Record<string, number>>(DEFAULT_GOVERNORATE_SHIPPING_RATES);
@@ -113,6 +151,16 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (!screenshotFile) {
+      setError(
+        language === "ar"
+          ? "يرجى إرفاق صورة إيصال تحويل العربون (50%) لتأكيد الطلب."
+          : "Please attach a screenshot of the 50% deposit transfer receipt to confirm your order."
+      );
+      depositSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
@@ -152,7 +200,27 @@ export default function CheckoutPage() {
       const res = await api.post("/orders", payload);
       const orderData = res.data?.data || res.data;
       const orderNumber = orderData?.order_number;
+
       if (orderNumber) {
+        // Upload the required deposit receipt screenshot
+        if (screenshotFile) {
+          try {
+            const depositFormData = new FormData();
+            depositFormData.append("amount", deposit50.toString());
+            depositFormData.append("method", activeDepositTab === "wallet" ? "vodafone_cash" : activeDepositTab);
+            depositFormData.append("transfer_date", new Date().toISOString().split("T")[0]);
+            depositFormData.append("screenshot", screenshotFile);
+
+            await api.post(`/orders/${orderNumber}/deposits`, depositFormData, {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            });
+          } catch (uploadErr) {
+            console.error("Deposit receipt upload error:", uploadErr);
+          }
+        }
+
         clearCart();
         router.push(`/order-tracking?order=${orderNumber}&new=1`);
         return;
@@ -966,6 +1034,190 @@ export default function CheckoutPage() {
                   </div>
                 </div>
               )}
+
+              {/* Deposit Proof Upload Section */}
+              <div
+                ref={depositSectionRef}
+                style={{
+                  borderTop: "1px dashed #E5DFD5",
+                  paddingTop: "20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "14px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <UploadCloud size={20} color="var(--color-accent)" />
+                    <span style={{ fontSize: "0.9375rem", fontWeight: 700, color: "var(--color-text)" }}>
+                      {language === "ar" ? "إرفاق صورة إيصال التحويل" : "Attach Deposit Transfer Receipt"}
+                    </span>
+                    <span
+                      style={{
+                        backgroundColor: "#FEE2E2",
+                        color: "#DC2626",
+                        fontSize: "0.6875rem",
+                        fontWeight: 700,
+                        padding: "2px 8px",
+                        borderRadius: "12px",
+                      }}
+                    >
+                      {language === "ar" ? "إلزامي لتأكيد الطلب *" : "Required *"}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: "0.8125rem", color: "var(--color-accent-hover)", fontWeight: 700 }}>
+                    {language === "ar" ? `العربون المطلوب: ${formatPriceLocal(deposit50)}` : `Required Deposit: ${formatPriceLocal(deposit50)}`}
+                  </span>
+                </div>
+
+                <p style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", margin: 0, lineHeight: 1.5 }}>
+                  {language === "ar"
+                    ? `بعد إتمام التحويل عبر ${activeDepositTab === "instapay" ? "إنستاباي (InstaPay)" : activeDepositTab === "wallet" ? "المحفظة الإلكترونية (فودافون كاش)" : "تيلدا (Telda)"}، يرجى إرفاق لقطة شاشة للإيصال هنا لتأكيد حجز طلبك وبدء استيراده فوراً.`
+                    : `After completing the deposit transfer via ${activeDepositTab === "instapay" ? "InstaPay" : activeDepositTab === "wallet" ? "Mobile Wallet" : "Telda"}, please upload a screenshot of your receipt here to confirm and initiate your order.`}
+                </p>
+
+                {fileError && (
+                  <div
+                    style={{
+                      backgroundColor: "#FEF2F2",
+                      border: "1px solid #FECACA",
+                      color: "#991B1B",
+                      padding: "10px 14px",
+                      borderRadius: "8px",
+                      fontSize: "0.8125rem",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <AlertCircle size={16} />
+                    <span>{fileError}</span>
+                  </div>
+                )}
+
+                <input
+                  type="file"
+                  ref={depositFileInputRef}
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  onChange={handleFileChange}
+                  style={{ display: "none" }}
+                  id="checkout-deposit-receipt-input"
+                />
+
+                {!screenshotPreview ? (
+                  <div
+                    onClick={() => depositFileInputRef.current?.click()}
+                    style={{
+                      border: "2px dashed var(--color-accent)",
+                      borderRadius: "12px",
+                      padding: "26px 18px",
+                      textAlign: "center",
+                      cursor: "pointer",
+                      backgroundColor: "#FFFFFF",
+                      transition: "all 0.2s ease",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#FFF9F6";
+                      e.currentTarget.style.borderColor = "var(--color-accent-hover)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "#FFFFFF";
+                      e.currentTarget.style.borderColor = "var(--color-accent)";
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "48px",
+                        height: "48px",
+                        borderRadius: "50%",
+                        backgroundColor: "var(--color-accent-light)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        margin: "0 auto 12px",
+                      }}
+                    >
+                      <UploadCloud size={24} color="var(--color-accent)" />
+                    </div>
+                    <div style={{ fontSize: "0.9375rem", fontWeight: 700, color: "var(--color-text)", marginBottom: "4px" }}>
+                      {language === "ar" ? "اضغطي هنا لاختيار صورة إيصال التحويل" : "Click here to upload transfer receipt screenshot"}
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>
+                      {language === "ar" ? "صورة لقطة الشاشة (PNG, JPG, WEBP • الحد الأقصى 5 ميجابايت)" : "PNG, JPG, WEBP • Max 5MB"}
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      border: "1px solid #86EFAC",
+                      borderRadius: "12px",
+                      padding: "14px 16px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "14px",
+                      backgroundColor: "#F0FDF4",
+                    }}
+                  >
+                    <img
+                      src={screenshotPreview}
+                      alt="Receipt preview"
+                      onClick={() => setLightboxImage(screenshotPreview)}
+                      style={{
+                        width: "60px",
+                        height: "60px",
+                        objectFit: "cover",
+                        borderRadius: "8px",
+                        border: "1px solid #BBF7D0",
+                        flexShrink: 0,
+                        cursor: "pointer",
+                      }}
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontSize: "0.875rem",
+                          fontWeight: 700,
+                          color: "var(--color-text)",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {screenshotFile?.name}
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "#166534", marginTop: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <CheckCircle2 size={14} color="#166534" />
+                        <span>
+                          {(screenshotFile?.size ? (screenshotFile.size / 1024).toFixed(0) : "0")} KB • {language === "ar" ? "تم إرفاق الإيصال بنجاح (جاهز للتأكيد)" : "Receipt Attached & Ready"}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={clearScreenshot}
+                      style={{
+                        background: "none",
+                        border: "1px solid #FECACA",
+                        borderRadius: "6px",
+                        backgroundColor: "#FFFFFF",
+                        color: "var(--color-danger)",
+                        cursor: "pointer",
+                        padding: "8px 12px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                      }}
+                      title={language === "ar" ? "حذف الصورة واختيار غيرها" : "Remove & re-upload"}
+                    >
+                      <Trash2 size={14} />
+                      <span>{language === "ar" ? "حذف" : "Remove"}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1078,34 +1330,69 @@ export default function CheckoutPage() {
                   <span>{t("balance_on_doorstep")}:</span>
                   <span>{formatPriceLocal(remainingOnDelivery)}</span>
                 </div>
+
+                {/* Deposit Attachment Status Badge */}
+                <div
+                  style={{
+                    marginTop: "10px",
+                    padding: "8px 10px",
+                    borderRadius: "8px",
+                    fontSize: "0.75rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    backgroundColor: screenshotFile ? "#DCFCE7" : "#FEF3C7",
+                    color: screenshotFile ? "#166534" : "#92400E",
+                    fontWeight: 600,
+                  }}
+                >
+                  {screenshotFile ? (
+                    <>
+                      <CheckCircle2 size={14} color="#166534" />
+                      <span>{language === "ar" ? "✓ تم إرفاق صورة إيصال العربون" : "✓ Deposit receipt attached"}</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle size={14} color="#92400E" />
+                      <span>{language === "ar" ? "⚠️ مطلوب: إرفاق صورة إيصال العربون لتأكيد الطلب" : "⚠️ Required: Deposit screenshot needed"}</span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !screenshotFile}
+              title={!screenshotFile ? (language === "ar" ? "يرجى إرفاق صورة إيصال تحويل العربون أولاً لتأكيد الطلب" : "Please attach deposit receipt screenshot first") : undefined}
               style={{
                 marginTop: "24px",
                 width: "100%",
                 padding: "16px 20px",
-                backgroundColor: "var(--color-accent)",
+                backgroundColor: !screenshotFile ? "#9CA3AF" : "var(--color-accent)",
                 color: "#FFFFFF",
                 border: "none",
                 borderRadius: "8px",
                 fontSize: "1rem",
                 fontWeight: 600,
-                cursor: submitting ? "not-allowed" : "pointer",
-                boxShadow: "0 4px 14px rgba(196, 144, 124, 0.35)",
+                cursor: submitting || !screenshotFile ? "not-allowed" : "pointer",
+                boxShadow: !screenshotFile ? "none" : "0 4px 14px rgba(196, 144, 124, 0.35)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 gap: "8px",
-                transition: "background 0.2s",
+                transition: "all 0.2s ease",
                 opacity: submitting ? 0.7 : 1,
               }}
             >
-              <span>{submitting ? t("order_submitting") : t("place_order_btn")}</span>
+              <span>
+                {submitting
+                  ? (language === "ar" ? "جاري تسجيل الطلب ورفع الإيصال..." : "Submitting Order & Receipt...")
+                  : !screenshotFile
+                  ? (language === "ar" ? "إرفاق إيصال العربون مطلوب لتأكيد الطلب" : "Attach Deposit Receipt to Confirm")
+                  : (language === "ar" ? "تأكيد الطلب وإرسال إيصال العربون" : "Confirm Order & Submit Receipt")}
+              </span>
               <ArrowIcon size={18} />
             </button>
           </div>

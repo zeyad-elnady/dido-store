@@ -93,6 +93,9 @@ class DepositController extends Controller
         if (!$request->has('method') && $request->has('payment_method')) {
             $request->merge(['method' => $request->input('payment_method')]);
         }
+        if ($request->input('method') === 'wallet') {
+            $request->merge(['method' => 'vodafone_cash']);
+        }
         if (!$request->has('transfer_date')) {
             $request->merge(['transfer_date' => now()->toDateString()]);
         }
