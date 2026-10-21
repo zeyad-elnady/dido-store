@@ -20,7 +20,7 @@ class OrderController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Order::with(['customer', 'items']);
+        $query = Order::with(['customer', 'items.product.images']);
 
         // Filter by status
         if ($request->has('status')) {

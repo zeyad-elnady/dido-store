@@ -21,6 +21,7 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
+  Calculator,
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import api from "@/lib/api";
@@ -28,6 +29,7 @@ import api from "@/lib/api";
 const SIDEBAR_ITEMS = [
   { href: "/admin/dashboard", label_en: "Dashboard", label_ar: "لوحة التحكم", icon: LayoutDashboard },
   { href: "/admin/orders", label_en: "Orders", label_ar: "الطلبات", icon: ShoppingBag },
+  { href: "/admin/shein-orders", label_en: "SHEIN Purchasing & Profit", label_ar: "أرباح وطلبات شي إن", icon: Calculator },
   { href: "/admin/deposits", label_en: "Deposits", label_ar: "العربونات", icon: CreditCard },
   { href: "/admin/products", label_en: "Products", label_ar: "المنتجات", icon: Package },
   { href: "/admin/categories", label_en: "Categories", label_ar: "الأقسام", icon: Layers },
