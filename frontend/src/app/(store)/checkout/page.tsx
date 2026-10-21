@@ -46,8 +46,6 @@ export default function CheckoutPage() {
   const [building, setBuilding] = useState("");
   const [apartment, setApartment] = useState("");
   const [landmark, setLandmark] = useState("");
-  const [sourcePlatform, setSourcePlatform] = useState<"instagram" | "tiktok" | "whatsapp">("instagram");
-  const [platformUsername, setPlatformUsername] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -135,9 +133,9 @@ export default function CheckoutPage() {
         name,
         phone,
         whatsapp_number: effectiveWhatsapp,
-        source_platform: sourcePlatform,
-        instagram_username: sourcePlatform === "instagram" ? platformUsername : null,
-        tiktok_username: sourcePlatform === "tiktok" ? platformUsername : null,
+        source_platform: "whatsapp" as const,
+        instagram_username: null,
+        tiktok_username: null,
       },
       items: items.map((item) => ({
         product_id: item.product.id,
@@ -373,52 +371,6 @@ export default function CheckoutPage() {
                   <label htmlFor="samePhone" style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)", cursor: "pointer" }}>
                     {t("same_as_phone")}
                   </label>
-                </div>
-
-                {/* Where did you find us? */}
-                <div className="checkout-two-col">
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, marginBottom: "6px" }}>
-                      {t("social_source_title")}
-                    </label>
-                    <select
-                      value={sourcePlatform}
-                      onChange={(e) => setSourcePlatform(e.target.value as any)}
-                      style={{
-                        width: "100%",
-                        padding: "12px 14px",
-                        borderRadius: "8px",
-                        border: "1px solid var(--color-border)",
-                        fontSize: "0.9375rem",
-                        outline: "none",
-                        backgroundColor: "#FFFFFF",
-                      }}
-                    >
-                      <option value="instagram">Instagram</option>
-                      <option value="tiktok">TikTok</option>
-                      <option value="whatsapp">{language === "ar" ? "واتساب / ترشيح صديق" : "WhatsApp / Friend Referral"}</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, marginBottom: "6px" }}>
-                      {t("platform_username")}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="@yourhandle"
-                      value={platformUsername}
-                      onChange={(e) => setPlatformUsername(e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "12px 14px",
-                        borderRadius: "8px",
-                        border: "1px solid var(--color-border)",
-                        fontSize: "0.9375rem",
-                        outline: "none",
-                      }}
-                    />
-                  </div>
                 </div>
               </div>
             </div>
