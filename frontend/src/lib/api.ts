@@ -31,8 +31,12 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
       const isAdminRoute = window.location.pathname.startsWith('/admin');
-      if (isAdminRoute && !window.location.pathname.includes('/login')) {
+      const isLoginRoute = window.location.pathname.includes('/login');
+      const isLoginRequest = error.config?.url?.includes('/admin/login');
+
+      if (isAdminRoute && !isLoginRoute && !isLoginRequest) {
         localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_user');
         window.location.href = '/admin/login';
       }
     }

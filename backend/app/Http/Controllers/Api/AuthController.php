@@ -30,8 +30,9 @@ class AuthController extends Controller
             ]);
         }
 
-        // Revoke existing tokens
-        $user->tokens()->delete();
+        // Allow multiple concurrent admin sessions (laptop, mobile, multiple tabs)
+        // Only clean up tokens older than 30 days
+        $user->tokens()->where('created_at', '<', now()->subDays(30))->delete();
 
         $token = $user->createToken('admin-token')->plainTextToken;
 
