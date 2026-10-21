@@ -43,11 +43,11 @@ RUN addgroup -g 1000 -S www && \
 WORKDIR /var/www/html
 
 # Copy composer files first for layer caching
-COPY backend/composer.json ./
+COPY --chown=www:www backend/composer.json ./
 RUN composer install --no-security-blocking --no-dev --no-scripts --no-autoloader --prefer-dist
 
 # Copy application code
-COPY backend/ .
+COPY --chown=www:www backend/ .
 
 # Ensure storage and bootstrap directories exist with proper permissions
 RUN mkdir -p storage/framework/cache/data \
@@ -55,15 +55,10 @@ RUN mkdir -p storage/framework/cache/data \
              storage/framework/views \
              storage/logs \
              bootstrap/cache \
-    && chown -R www:www /var/www/html \
-    && chmod -R 777 storage bootstrap/cache
+    && chmod -R 775 storage bootstrap/cache
 
 # Generate optimized autoloader
 RUN composer dump-autoload --optimize --no-dev --no-scripts
-
-# Set permissions
-RUN chown -R www:www /var/www/html \
-    && chmod -R 775 storage bootstrap/cache
 
 # Copy entrypoint
 COPY docker/backend/entrypoint.sh /usr/local/bin/entrypoint.sh
