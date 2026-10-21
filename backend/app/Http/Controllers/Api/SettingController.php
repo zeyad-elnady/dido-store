@@ -20,6 +20,7 @@ class SettingController extends Controller
             'contact' => Setting::getGroup('contact'),
             'payment' => Setting::getGroup('payment'),
             'social' => Setting::getGroup('social'),
+            'shipping' => Setting::getGroup('shipping'),
         ];
 
         return response()->json($settings);
@@ -30,31 +31,54 @@ class SettingController extends Controller
      */
     public function index(): JsonResponse
     {
-        $settings = Setting::all()->groupBy('group');
+        $settings = [
+            'contact' => Setting::getGroup('contact'),
+            'payment' => Setting::getGroup('payment'),
+            'social' => Setting::getGroup('social'),
+            'shipping' => Setting::getGroup('shipping'),
+        ];
         return response()->json($settings);
     }
 
     /**
-     * Update settings (admin).
+     * Update settings (admin). Supports both structured {settings: [...]} array and group dictionaries {payment: {...}, shipping: {...}}.
      */
     public function update(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'settings' => 'required|array',
-            'settings.*.key' => 'required|string',
-            'settings.*.value' => 'nullable|string',
-            'settings.*.group' => 'nullable|string',
-        ]);
-
-        foreach ($validated['settings'] as $item) {
-            Setting::setValue(
-                $item['key'],
-                $item['value'],
-                $item['group'] ?? 'general'
-            );
+        if ($request->has('settings') && is_array($request->settings)) {
+            foreach ($request->settings as $item) {
+                if (isset($item['key'])) {
+                    Setting::setValue(
+                        $item['key'],
+                        $item['value'] ?? null,
+                        $item['group'] ?? 'general'
+                    );
+                }
+            }
         }
 
-        return response()->json(['message' => 'Settings updated successfully.']);
+        // Also support direct group dictionaries
+        foreach ($request->all() as $group => $values) {
+            if ($group !== 'settings' && is_array($values)) {
+                foreach ($values as $key => $val) {
+                    Setting::setValue(
+                        $key,
+                        is_array($val) ? json_encode($val) : (string) $val,
+                        $group
+                    );
+                }
+            }
+        }
+
+        return response()->json([
+            'message' => 'Settings updated successfully.',
+            'settings' => [
+                'contact' => Setting::getGroup('contact'),
+                'payment' => Setting::getGroup('payment'),
+                'social' => Setting::getGroup('social'),
+                'shipping' => Setting::getGroup('shipping'),
+            ],
+        ]);
     }
 
     /**

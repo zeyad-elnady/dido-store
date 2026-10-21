@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { EGYPT_GOVERNORATES } from "@/lib/translations";
+import { EGYPT_GOVERNORATES, DEFAULT_GOVERNORATE_SHIPPING_RATES, getShippingFeeForGovernorate } from "@/lib/translations";
 import api, { storageUrl } from "@/lib/api";
 import {
   ShoppingBag,
@@ -57,16 +57,47 @@ export default function CheckoutPage() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
+  // Dynamic Shipping Settings State
+  const [shippingRates, setShippingRates] = useState<Record<string, number>>(DEFAULT_GOVERNORATE_SHIPPING_RATES);
+  const [defaultShippingFee, setDefaultShippingFee] = useState<number>(70);
+
+  useEffect(() => {
+    api
+      .get("/settings/public")
+      .then((res) => {
+        const shipping = res.data?.shipping;
+        if (shipping) {
+          if (shipping.default_shipping_fee) {
+            setDefaultShippingFee(Number(shipping.default_shipping_fee) || 70);
+          }
+          if (shipping.shipping_rates_json) {
+            try {
+              const parsed = JSON.parse(shipping.shipping_rates_json);
+              setShippingRates((prev) => ({ ...prev, ...parsed }));
+            } catch {}
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  const shippingFee = 70;
+  // Dynamic Shipping Fee based on selected Egyptian Governorate
+  const shippingFee = useMemo(() => {
+    return getShippingFeeForGovernorate(governorate, shippingRates, defaultShippingFee);
+  }, [governorate, shippingRates, defaultShippingFee]);
+
   const total = subtotal + shippingFee;
   const deposit50 = Math.round(total * 0.5);
   const remainingOnDelivery = total - deposit50;
+
+  const currentGovObj = EGYPT_GOVERNORATES.find((g) => g.value === governorate);
+  const currentGovLabel = language === "ar" ? (currentGovObj?.label_ar || governorate) : (currentGovObj?.label_en || governorate);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,6 +146,7 @@ export default function CheckoutPage() {
         color: item.color,
       })),
       shipping_address: formattedShippingAddress,
+      shipping_fee: shippingFee,
       notes,
     };
 
@@ -1058,7 +1090,7 @@ export default function CheckoutPage() {
                 <span>{formatPriceLocal(subtotal)}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", color: "var(--color-text-secondary)" }}>
-                <span>{t("shipping_fee_label")}</span>
+                <span>{t("shipping_fee_label")} ({currentGovLabel})</span>
                 <span>{formatPriceLocal(shippingFee)}</span>
               </div>
               <div

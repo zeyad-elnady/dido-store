@@ -21,11 +21,13 @@ import {
   Link2,
   Check,
   Loader2,
+  Truck,
 } from "lucide-react";
 import api, { storageUrl } from "@/lib/api";
 import { MOCK_SETTINGS, MOCK_FOUNDER } from "@/lib/mockData";
 import { FounderProfile, PublicSettings } from "@/types";
 import { useLanguage } from "@/context/LanguageContext";
+import { EGYPT_GOVERNORATES, DEFAULT_GOVERNORATE_SHIPPING_RATES } from "@/lib/translations";
 
 export default function AdminSettingsPage() {
   const { isRTL, language } = useLanguage();
@@ -36,6 +38,10 @@ export default function AdminSettingsPage() {
   const [founder, setFounder] = useState<FounderProfile>(MOCK_FOUNDER);
   const [banner, setBanner] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Domestic Shipping by Governorate
+  const [defaultShippingFee, setDefaultShippingFee] = useState<string>("70");
+  const [shippingRates, setShippingRates] = useState<Record<string, number>>(DEFAULT_GOVERNORATE_SHIPPING_RATES);
 
   // Founder photo upload state
   const [photoUploading, setPhotoUploading] = useState(false);
@@ -102,6 +108,17 @@ export default function AdminSettingsPage() {
         if (res.data) {
           if (res.data.payment) setPaymentSettings(res.data.payment);
           if (res.data.contact) setContactSettings(res.data.contact);
+          if (res.data.shipping) {
+            if (res.data.shipping.default_shipping_fee) {
+              setDefaultShippingFee(res.data.shipping.default_shipping_fee);
+            }
+            if (res.data.shipping.shipping_rates_json) {
+              try {
+                const parsed = JSON.parse(res.data.shipping.shipping_rates_json);
+                setShippingRates((prev) => ({ ...prev, ...parsed }));
+              } catch {}
+            }
+          }
         }
       })
       .catch(() => {});
@@ -224,6 +241,16 @@ export default function AdminSettingsPage() {
     }
   };
 
+  const applyRegionRate = (regionGovernorates: string[], rate: number) => {
+    setShippingRates((prev) => {
+      const updated = { ...prev };
+      regionGovernorates.forEach((gov) => {
+        updated[gov] = rate;
+      });
+      return updated;
+    });
+  };
+
   // Save Store General Settings & Founder
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -233,6 +260,10 @@ export default function AdminSettingsPage() {
       await api.put("/admin/settings", {
         payment: paymentSettings,
         contact: contactSettings,
+        shipping: {
+          default_shipping_fee: defaultShippingFee,
+          shipping_rates_json: JSON.stringify(shippingRates),
+        },
       });
       await api.put("/admin/founder", founder);
       setBanner(isRTL ? "تم حفظ كافة إعدادات المتجر وبيانات المؤسسة بنجاح!" : "All settings and store details successfully saved!");
@@ -722,6 +753,146 @@ export default function AdminSettingsPage() {
                 style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--color-border)" }}
               />
             </div>
+          </div>
+        </div>
+
+        {/* ── Domestic Shipping Fees by Governorate ─────────────────── */}
+        <div
+          id="shipping"
+          style={{
+            backgroundColor: "#FFFFFF",
+            borderRadius: "16px",
+            border: "1px solid var(--color-border-light)",
+            padding: "28px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", marginBottom: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <Truck size={20} color="var(--color-accent)" />
+              <h3 style={{ fontSize: "1.125rem", fontWeight: 600, color: "var(--color-text)", margin: 0 }}>
+                {isRTL ? "مصاريف الشحن والتوصيل حسب المحافظة" : "Shipping Fees by Governorate (Egypt)"}
+              </h3>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>
+                {isRTL ? "السعر الافتراضي العام (ج.م):" : "Default Rate (EGP):"}
+              </span>
+              <input
+                type="number"
+                min="0"
+                value={defaultShippingFee}
+                onChange={(e) => setDefaultShippingFee(e.target.value)}
+                style={{ width: "90px", padding: "6px 10px", borderRadius: "8px", border: "1px solid var(--color-border)", fontSize: "0.875rem", fontWeight: 700 }}
+              />
+            </div>
+          </div>
+
+          <p style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", marginBottom: "18px" }}>
+            {isRTL
+              ? "حددي سعر التوصيل لكل محافظة؛ سيتم تحديث مصاريف الشحن وإجمالي الطلب تلقائياً عند اختيار العميل لمحافظته أثناء إتمام الطلب."
+              : "Set shipping fees for each Egyptian governorate. The customer checkout will dynamically update shipping fees and total order balance based on the selected governorate."}
+          </p>
+
+          {/* Quick Regional Presets */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "20px", padding: "12px", backgroundColor: "#FAF7F2", borderRadius: "10px", border: "1px solid var(--color-border-light)" }}>
+            <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--color-text)", alignSelf: "center", marginInlineEnd: "4px" }}>
+              {isRTL ? "تطبيق سريع للمناطق:" : "Quick Region Set:"}
+            </span>
+            <button
+              type="button"
+              onClick={() => applyRegionRate(["Cairo", "Giza"], 60)}
+              style={{ padding: "5px 12px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: 600, border: "1px solid var(--color-border)", backgroundColor: "#FFFFFF", cursor: "pointer" }}
+            >
+              {isRTL ? "القاهرة والجيزة: 60 ج.م" : "Cairo & Giza: 60 EGP"}
+            </button>
+            <button
+              type="button"
+              onClick={() => applyRegionRate(["Alexandria"], 70)}
+              style={{ padding: "5px 12px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: 600, border: "1px solid var(--color-border)", backgroundColor: "#FFFFFF", cursor: "pointer" }}
+            >
+              {isRTL ? "الإسكندرية: 70 ج.م" : "Alexandria: 70 EGP"}
+            </button>
+            <button
+              type="button"
+              onClick={() => applyRegionRate(["Qalyubia", "Sharqia", "Dakahlia", "Gharbia", "Monufia", "Beheira", "Kafr El Sheikh", "Damietta", "Port Said", "Ismailia", "Suez"], 75)}
+              style={{ padding: "5px 12px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: 600, border: "1px solid var(--color-border)", backgroundColor: "#FFFFFF", cursor: "pointer" }}
+            >
+              {isRTL ? "الدلتا والقناة: 75 ج.م" : "Delta & Canal: 75 EGP"}
+            </button>
+            <button
+              type="button"
+              onClick={() => applyRegionRate(["Fayoum", "Beni Suef", "Minya", "Asyut", "Sohag", "Qena", "Luxor", "Aswan"], 95)}
+              style={{ padding: "5px 12px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: 600, border: "1px solid var(--color-border)", backgroundColor: "#FFFFFF", cursor: "pointer" }}
+            >
+              {isRTL ? "محافظات الصعيد: 95 ج.م" : "Upper Egypt: 95 EGP"}
+            </button>
+            <button
+              type="button"
+              onClick={() => applyRegionRate(["Red Sea", "South Sinai", "Matrouh"], 110)}
+              style={{ padding: "5px 12px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: 600, border: "1px solid var(--color-border)", backgroundColor: "#FFFFFF", cursor: "pointer" }}
+            >
+              {isRTL ? "المحافظات الحدودية وسيناء: 110 ج.م" : "Frontier & Sinai: 110 EGP"}
+            </button>
+          </div>
+
+          {/* Governorates Grid */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))",
+              gap: "10px",
+            }}
+          >
+            {EGYPT_GOVERNORATES.map((gov) => {
+              const currentRate = shippingRates[gov.value] ?? Number(defaultShippingFee) ?? 70;
+              const label = isRTL ? gov.label_ar : gov.label_en;
+
+              return (
+                <div
+                  key={gov.value}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid var(--color-border-light)",
+                    backgroundColor: "#FAFAFA",
+                    gap: "8px",
+                  }}
+                >
+                  <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {label}
+                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}>
+                    <input
+                      type="number"
+                      min="0"
+                      step="5"
+                      value={currentRate}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value) || 0;
+                        setShippingRates((prev) => ({ ...prev, [gov.value]: val }));
+                      }}
+                      style={{
+                        width: "70px",
+                        padding: "5px 8px",
+                        borderRadius: "6px",
+                        border: "1px solid var(--color-border)",
+                        fontSize: "0.8125rem",
+                        fontWeight: 700,
+                        backgroundColor: "#FFFFFF",
+                        textAlign: "center",
+                      }}
+                    />
+                    <span style={{ fontSize: "0.6875rem", color: "var(--color-text-secondary)" }}>
+                      {isRTL ? "ج.م" : "EGP"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 

@@ -685,3 +685,47 @@ export const EGYPT_GOVERNORATES = [
   { value: "South Sinai", label_en: "South Sinai (Sharm El Sheikh)", label_ar: "جنوب سيناء (شرم الشيخ)" },
   { value: "Matrouh", label_en: "Matrouh", label_ar: "مطروح والساحل الشمالي" },
 ];
+
+export const DEFAULT_GOVERNORATE_SHIPPING_RATES: Record<string, number> = {
+  Cairo: 60,
+  Giza: 60,
+  Qalyubia: 65,
+  Alexandria: 70,
+  Sharqia: 75,
+  Dakahlia: 75,
+  Gharbia: 75,
+  Monufia: 75,
+  Beheira: 75,
+  "Kafr El Sheikh": 75,
+  Damietta: 75,
+  "Port Said": 80,
+  Ismailia: 80,
+  Suez: 80,
+  Fayoum: 85,
+  "Beni Suef": 85,
+  Minya: 85,
+  Asyut: 95,
+  Sohag: 95,
+  Qena: 95,
+  Luxor: 95,
+  Aswan: 95,
+  "Red Sea": 110,
+  "South Sinai": 110,
+  Matrouh: 110,
+};
+
+export function getShippingFeeForGovernorate(
+  governorateValue: string,
+  customRates?: Record<string, number | string>,
+  defaultFee: number = 70
+): number {
+  if (customRates && customRates[governorateValue] !== undefined) {
+    const parsed = Number(customRates[governorateValue]);
+    if (!isNaN(parsed) && parsed >= 0) return parsed;
+  }
+  if (DEFAULT_GOVERNORATE_SHIPPING_RATES[governorateValue] !== undefined) {
+    return DEFAULT_GOVERNORATE_SHIPPING_RATES[governorateValue];
+  }
+  return defaultFee;
+}
+
