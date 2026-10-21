@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
@@ -26,8 +26,12 @@ import { MOCK_SETTINGS } from "@/lib/mockData";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, subtotal, removeFromCart, updateQuantity, clearCart, mounted } = useCart();
+  const { items, subtotal, removeFromCart, updateQuantity, clearCart, mounted, setIsCartOpen } = useCart();
   const { language, t, localize, formatPriceLocal, isRTL } = useLanguage();
+
+  useEffect(() => {
+    setIsCartOpen(false);
+  }, [setIsCartOpen]);
 
   const ArrowIcon = isRTL ? ArrowLeft : ArrowRight;
 

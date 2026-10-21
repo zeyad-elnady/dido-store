@@ -163,7 +163,7 @@ export default function ProductDetailPage({
   const resolvedParams = use(params);
   const slug = resolvedParams.slug;
   const router = useRouter();
-  const { addToCart } = useCart();
+  const { addToCart, setIsCartOpen } = useCart();
   const { language, t, localize, formatPriceLocal, isRTL } = useLanguage();
 
   const ArrowBackIcon = isRTL ? ArrowRight : ArrowLeft;
@@ -386,7 +386,8 @@ export default function ProductDetailPage({
   };
 
   const handleBuyNow = () => {
-    addToCart(product, quantity, selectedSize, selectedColor);
+    addToCart(product, quantity, selectedSize, selectedColor, false);
+    setIsCartOpen(false);
     router.push("/checkout");
   };
 
