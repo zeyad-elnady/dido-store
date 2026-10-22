@@ -187,6 +187,7 @@ export interface Analytics {
     total_sold: number;
     total_revenue: number;
   }[];
+  acquisition_channels?: Record<string, { count: number; revenue: number }>;
 }
 
 export interface PaginatedResponse<T> {

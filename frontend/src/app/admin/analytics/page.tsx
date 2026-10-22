@@ -70,7 +70,7 @@ export default function AdminAnalyticsPage() {
             {formatPrice(data.kpis.total_revenue)}
           </div>
           <span style={{ fontSize: "0.75rem", color: "#059669", fontWeight: 600 }}>
-            {completedOrders} Completed Orders
+            {completedOrders} Completed Orders ({totalOrders} total)
           </span>
         </div>
 
@@ -98,6 +98,26 @@ export default function AdminAnalyticsPage() {
             {formatPrice(data.kpis.total_customs_fees)}
           </div>
           <span style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>Import clearance</span>
+        </div>
+
+        <div style={{ backgroundColor: "#FFFFFF", padding: "20px", borderRadius: "12px", border: "1px solid var(--color-border-light)" }}>
+          <span style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", fontWeight: 500 }}>Verified Deposits</span>
+          <div style={{ fontSize: "1.5rem", fontWeight: 700, marginTop: "6px", color: "#2563EB" }}>
+            {formatPrice(data.kpis.total_deposits)}
+          </div>
+          <span style={{ fontSize: "0.75rem", color: "#2563EB", fontWeight: 600 }}>
+            Secured down payments
+          </span>
+        </div>
+
+        <div style={{ backgroundColor: "#FFFFFF", padding: "20px", borderRadius: "12px", border: "1px solid var(--color-border-light)" }}>
+          <span style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", fontWeight: 500 }}>Outstanding Due</span>
+          <div style={{ fontSize: "1.5rem", fontWeight: 700, marginTop: "6px", color: "#D97706" }}>
+            {formatPrice(data.kpis.outstanding_balances)}
+          </div>
+          <span style={{ fontSize: "0.75rem", color: "#D97706", fontWeight: 600 }}>
+            COD collection pipeline
+          </span>
         </div>
       </div>
 
@@ -176,37 +196,58 @@ export default function AdminAnalyticsPage() {
             Customer Acquisition Channels
           </h3>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem", marginBottom: "6px" }}>
-                <span style={{ fontWeight: 600 }}>Instagram</span>
-                <span style={{ fontWeight: 700 }}>{totalOrders > 0 ? "—" : "0 orders"}</span>
-              </div>
-              <div style={{ height: "8px", backgroundColor: "var(--color-bg-alt)", borderRadius: "4px", overflow: "hidden" }}>
-                <div style={{ width: "0%", height: "100%", backgroundColor: "#DB2777" }} />
-              </div>
-            </div>
+          {(() => {
+            const igCount = data.acquisition_channels?.instagram?.count || 0;
+            const igRev = data.acquisition_channels?.instagram?.revenue || 0;
+            const ttCount = data.acquisition_channels?.tiktok?.count || 0;
+            const ttRev = data.acquisition_channels?.tiktok?.revenue || 0;
+            const waCount = data.acquisition_channels?.whatsapp?.count || 0;
+            const waRev = data.acquisition_channels?.whatsapp?.revenue || 0;
+            const sumChannels = igCount + ttCount + waCount || 1;
+            const igPct = Math.round((igCount / sumChannels) * 100);
+            const ttPct = Math.round((ttCount / sumChannels) * 100);
+            const waPct = Math.round((waCount / sumChannels) * 100);
 
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem", marginBottom: "6px" }}>
-                <span style={{ fontWeight: 600 }}>TikTok</span>
-                <span style={{ fontWeight: 700 }}>{totalOrders > 0 ? "—" : "0 orders"}</span>
-              </div>
-              <div style={{ height: "8px", backgroundColor: "var(--color-bg-alt)", borderRadius: "4px", overflow: "hidden" }}>
-                <div style={{ width: "0%", height: "100%", backgroundColor: "#111827" }} />
-              </div>
-            </div>
+            return (
+              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem", marginBottom: "6px" }}>
+                    <span style={{ fontWeight: 600 }}>Instagram</span>
+                    <span style={{ fontWeight: 700 }}>
+                      {igCount > 0 ? `${igCount} orders (${formatPrice(igRev)})` : "0 orders"}
+                    </span>
+                  </div>
+                  <div style={{ height: "8px", backgroundColor: "var(--color-bg-alt)", borderRadius: "4px", overflow: "hidden" }}>
+                    <div style={{ width: `${igCount > 0 ? Math.max(igPct, 6) : 0}%`, height: "100%", backgroundColor: "#DB2777", transition: "width 0.4s ease" }} />
+                  </div>
+                </div>
 
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem", marginBottom: "6px" }}>
-                <span style={{ fontWeight: 600 }}>WhatsApp Direct / Referrals</span>
-                <span style={{ fontWeight: 700 }}>{totalOrders > 0 ? "—" : "0 orders"}</span>
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem", marginBottom: "6px" }}>
+                    <span style={{ fontWeight: 600 }}>TikTok</span>
+                    <span style={{ fontWeight: 700 }}>
+                      {ttCount > 0 ? `${ttCount} orders (${formatPrice(ttRev)})` : "0 orders"}
+                    </span>
+                  </div>
+                  <div style={{ height: "8px", backgroundColor: "var(--color-bg-alt)", borderRadius: "4px", overflow: "hidden" }}>
+                    <div style={{ width: `${ttCount > 0 ? Math.max(ttPct, 6) : 0}%`, height: "100%", backgroundColor: "#111827", transition: "width 0.4s ease" }} />
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem", marginBottom: "6px" }}>
+                    <span style={{ fontWeight: 600 }}>WhatsApp Direct / Referrals</span>
+                    <span style={{ fontWeight: 700 }}>
+                      {waCount > 0 ? `${waCount} orders (${formatPrice(waRev)})` : "0 orders"}
+                    </span>
+                  </div>
+                  <div style={{ height: "8px", backgroundColor: "var(--color-bg-alt)", borderRadius: "4px", overflow: "hidden" }}>
+                    <div style={{ width: `${waCount > 0 ? Math.max(waPct, 6) : 0}%`, height: "100%", backgroundColor: "#059669", transition: "width 0.4s ease" }} />
+                  </div>
+                </div>
               </div>
-              <div style={{ height: "8px", backgroundColor: "var(--color-bg-alt)", borderRadius: "4px", overflow: "hidden" }}>
-                <div style={{ width: "0%", height: "100%", backgroundColor: "#059669" }} />
-              </div>
-            </div>
-          </div>
+            );
+          })()}
         </div>
       </div>
 

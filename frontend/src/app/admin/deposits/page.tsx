@@ -12,6 +12,7 @@ import {
   ExternalLink,
   X,
   Search,
+  Trash2,
 } from "lucide-react";
 import api, { formatPrice, storageUrl } from "@/lib/api";
 import { Deposit } from "@/types";
@@ -48,15 +49,25 @@ export default function AdminDepositsPage() {
     fetchDeposits();
   }, []);
 
-  const handleVerify = async (id: number, status: "verified" | "rejected") => {
+  const handleVerify = async (id: number, status: "verified" | "rejected" | "pending") => {
     try {
       await api.patch(`/admin/deposits/${id}/verify`, { status });
       fetchDeposits();
     } catch {
       // Offline fallback: update local state
       setDeposits((prev) =>
-        prev.map((d) => (d.id === id ? { ...d, status, verified_at: new Date().toISOString() } : d))
+        prev.map((d) => (d.id === id ? { ...d, status, verified_at: status === "verified" ? new Date().toISOString() : null } : d))
       );
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this deposit receipt?")) return;
+    try {
+      await api.delete(`/admin/deposits/${id}`);
+      fetchDeposits();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Failed to delete deposit");
     }
   };
 
@@ -239,44 +250,100 @@ export default function AdminDepositsPage() {
                       </span>
                     </td>
                     <td style={{ padding: "16px 20px", textAlign: "right" }}>
-                      {dep.status === "pending" ? (
-                        <div style={{ display: "inline-flex", gap: "8px" }}>
-                          <button
-                            onClick={() => handleVerify(dep.id, "verified")}
-                            style={{
-                              padding: "6px 14px",
-                              backgroundColor: "#059669",
-                              color: "#FFFFFF",
-                              border: "none",
-                              borderRadius: "6px",
-                              fontSize: "0.8125rem",
-                              fontWeight: 600,
-                              cursor: "pointer",
-                            }}
-                          >
-                            Verify & Lock Stock
-                          </button>
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", justifyContent: "flex-end", flexWrap: "wrap" }}>
+                        {dep.status === "pending" && (
+                          <>
+                            <button
+                              onClick={() => handleVerify(dep.id, "verified")}
+                              style={{
+                                padding: "6px 14px",
+                                backgroundColor: "#059669",
+                                color: "#FFFFFF",
+                                border: "none",
+                                borderRadius: "6px",
+                                fontSize: "0.8125rem",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                              }}
+                            >
+                              Verify & Lock Stock
+                            </button>
+                            <button
+                              onClick={() => handleVerify(dep.id, "rejected")}
+                              style={{
+                                padding: "6px 12px",
+                                backgroundColor: "#DC2626",
+                                color: "#FFFFFF",
+                                border: "none",
+                                borderRadius: "6px",
+                                fontSize: "0.8125rem",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                              }}
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+
+                        {dep.status === "verified" && (
                           <button
                             onClick={() => handleVerify(dep.id, "rejected")}
                             style={{
                               padding: "6px 12px",
-                              backgroundColor: "#DC2626",
-                              color: "#FFFFFF",
-                              border: "none",
+                              backgroundColor: "#FEF3C7",
+                              color: "#92400E",
+                              border: "1px solid #FDE68A",
                               borderRadius: "6px",
-                              fontSize: "0.8125rem",
+                              fontSize: "0.75rem",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                            }}
+                            title="Unverify this deposit"
+                          >
+                            Unverify / Reject
+                          </button>
+                        )}
+
+                        {dep.status === "rejected" && (
+                          <button
+                            onClick={() => handleVerify(dep.id, "verified")}
+                            style={{
+                              padding: "6px 12px",
+                              backgroundColor: "#DCFCE7",
+                              color: "#166534",
+                              border: "1px solid #BBF7D0",
+                              borderRadius: "6px",
+                              fontSize: "0.75rem",
                               fontWeight: 600,
                               cursor: "pointer",
                             }}
                           >
-                            Reject
+                            Approve
                           </button>
-                        </div>
-                      ) : (
-                        <span style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)" }}>
-                          Completed
-                        </span>
-                      )}
+                        )}
+
+                        <button
+                          onClick={() => handleDelete(dep.id)}
+                          style={{
+                            padding: "6px 10px",
+                            backgroundColor: "#FEE2E2",
+                            color: "#DC2626",
+                            border: "1px solid #FECACA",
+                            borderRadius: "6px",
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                          title="Delete deposit record"
+                        >
+                          <Trash2 size={13} />
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

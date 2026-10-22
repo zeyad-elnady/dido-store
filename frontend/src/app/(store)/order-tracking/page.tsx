@@ -22,7 +22,7 @@ import {
   Maximize2,
   X,
 } from "lucide-react";
-import api from "@/lib/api";
+import api, { storageUrl } from "@/lib/api";
 import { Order, OrderStatus } from "@/types";
 import { MOCK_ORDERS, MOCK_SETTINGS } from "@/lib/mockData";
 import { useLanguage } from "@/context/LanguageContext";
@@ -103,7 +103,12 @@ function OrderTrackingContent() {
   }, [queryOrder]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    if (files.length > 1) {
+      setFileError(language === "ar" ? "يرجى اختيار صورة واحدة فقط للإيصال." : "Please select only one receipt photo.");
+    }
+    const file = files[0];
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
@@ -215,8 +220,8 @@ function OrderTrackingContent() {
             </h4>
             <p style={{ fontSize: "0.875rem", color: "#047857", margin: "4px 0 0" }}>
               {language === "ar"
-                ? "يرجى تحويل عربون 50% وإرفاق صورة الإيصال بالأسفل لنقوم بتأكيد قطعك من شي إن فوراً."
-                : "Please transfer your 50% deposit and upload your receipt screenshot below so we can place your items on SHEIN right away."}
+                ? "تم استلام طلبك وصورة إيصال تحويل العربون (50%) بنجاح! جاري مراجعة الإيصال من قبل الإدارة لتأكيد قطعك من شي إن فوراً."
+                : "Your order and 50% deposit receipt photo have been received successfully! Our team is reviewing the receipt to confirm your SHEIN items."}
             </p>
           </div>
         </div>
@@ -538,22 +543,197 @@ function OrderTrackingContent() {
               )}
             </div>
 
-            {/* Deposit Upload Form */}
-            <div
-              style={{
-                backgroundColor: "#FFFFFF",
-                borderRadius: "16px",
-                border: "1px solid var(--color-border-light)",
-                padding: "28px",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.02)",
-              }}
-            >
-              <h3 style={{ fontSize: "1.0625rem", fontWeight: 600, color: "var(--color-text)", marginBottom: "6px" }}>
-                {t("upload_proof_title")}
-              </h3>
-              <p style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", marginBottom: "18px" }}>
-                {t("upload_proof_desc")}
-              </p>
+            {/* Deposit Section: If deposit already uploaded, show confirmation card (Single Upload Only) */}
+            {Boolean(
+              (order as any)?.has_deposit ||
+              (order?.deposits && order.deposits.length > 0) ||
+              (order.verified_deposits_amount && order.verified_deposits_amount > 0) ||
+              uploadSuccess
+            ) ? (
+              <div
+                style={{
+                  backgroundColor: "#FFFFFF",
+                  borderRadius: "16px",
+                  border: "1px solid var(--color-border-light)",
+                  padding: "24px 28px",
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.02)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "16px",
+                    flexWrap: "wrap",
+                    gap: "10px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div
+                      style={{
+                        width: "38px",
+                        height: "38px",
+                        borderRadius: "50%",
+                        backgroundColor: "#ECFDF5",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <ShieldCheck size={22} color="#059669" />
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: "1.0625rem", fontWeight: 700, color: "var(--color-text)", margin: 0 }}>
+                        {language === "ar" ? "إيصال تحويل العربون (50%)" : "50% Deposit Transfer Receipt"}
+                      </h3>
+                      <p style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", margin: "2px 0 0" }}>
+                        {language === "ar"
+                          ? "تم رفع إيصال العربون مرة واحدة بنجاح لتأكيد طلبك."
+                          : "Deposit receipt uploaded once successfully for order confirmation."}
+                      </p>
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const dep = (order as any)?.deposit || (order?.deposits && order.deposits[0]) || null;
+                    const isVerified = (order.verified_deposits_amount || 0) > 0 || dep?.status === "verified";
+                    return (
+                      <span
+                        style={{
+                          padding: "6px 14px",
+                          borderRadius: "20px",
+                          fontSize: "0.75rem",
+                          fontWeight: 700,
+                          backgroundColor: isVerified ? "#DCFCE7" : "#FEF3C7",
+                          color: isVerified ? "#166534" : "#92400E",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                        }}
+                      >
+                        {isVerified ? (
+                          <>
+                            <CheckCircle2 size={14} color="#166534" />
+                            <span>{language === "ar" ? "تم التحقق والاعتماد بنجاح" : "Verified & Approved"}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock size={14} color="#92400E" />
+                            <span>{language === "ar" ? "قيد المراجعة والتحقق" : "Pending Verification"}</span>
+                          </>
+                        )}
+                      </span>
+                    );
+                  })()}
+                </div>
+
+                {(() => {
+                  const dep = (order as any)?.deposit || (order?.deposits && order.deposits[0]) || null;
+                  const screenshot = dep?.screenshot_path;
+                  return (
+                    <div
+                      style={{
+                        backgroundColor: "#F9FAFB",
+                        borderRadius: "12px",
+                        border: "1px solid var(--color-border-light)",
+                        padding: "16px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "16px",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      {screenshot ? (
+                        <div
+                          onClick={() => setLightboxImage(storageUrl(screenshot))}
+                          style={{
+                            width: "84px",
+                            height: "84px",
+                            borderRadius: "10px",
+                            overflow: "hidden",
+                            border: "1px solid var(--color-border)",
+                            boxShadow: "0 2px 6px rgba(0,0,0,0.06)",
+                            flexShrink: 0,
+                            cursor: "pointer",
+                            position: "relative",
+                            backgroundColor: "#000",
+                          }}
+                          title={language === "ar" ? "اضغطي لتكبير صورة الإيصال" : "Click to view full photo"}
+                        >
+                          <img
+                            src={storageUrl(screenshot)}
+                            alt="Deposit receipt"
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          />
+                          <div
+                            style={{
+                              position: "absolute",
+                              bottom: "4px",
+                              right: "4px",
+                              backgroundColor: "rgba(0,0,0,0.65)",
+                              borderRadius: "4px",
+                              padding: "2px 4px",
+                              color: "#FFF",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Maximize2 size={11} />
+                          </div>
+                        </div>
+                      ) : null}
+
+                      <div style={{ flex: 1, minWidth: "200px" }}>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
+                          <span style={{ fontSize: "1.125rem", fontWeight: 700, color: "var(--color-text)" }}>
+                            {formatPriceLocal(dep?.amount || Math.round(order.total * 0.5))}
+                          </span>
+                          <span style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
+                            ({language === "ar" ? "قيمة عربون 50%" : "50% Required Deposit"})
+                          </span>
+                        </div>
+
+                        <div style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", marginTop: "4px" }}>
+                          {language === "ar" ? "طريقة التحويل:" : "Payment Method:"}{" "}
+                          <strong style={{ color: "var(--color-text)", textTransform: "capitalize" }}>
+                            {dep?.method ? dep.method.replace(/_/g, " ") : "InstaPay"}
+                          </strong>
+                        </div>
+
+                        <div style={{ fontSize: "0.75rem", color: "#059669", marginTop: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                          <CheckCircle2 size={14} color="#059669" />
+                          <span>
+                            {language === "ar"
+                              ? "تم إرفاق صورة الإيصال مرة واحدة بنجاح ولا يُسمح برفع أكثر من صورة إيصال لنفس الطلب."
+                              : "Receipt uploaded once successfully. Multiple photo uploads are restricted."}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              /* Deposit Upload Form */
+              <div
+                style={{
+                  backgroundColor: "#FFFFFF",
+                  borderRadius: "16px",
+                  border: "1px solid var(--color-border-light)",
+                  padding: "28px",
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.02)",
+                }}
+              >
+                <h3 style={{ fontSize: "1.0625rem", fontWeight: 600, color: "var(--color-text)", marginBottom: "6px" }}>
+                  {language === "ar" ? "إرفاق إيصال تحويل العربون (صورة واحدة فقط)" : t("upload_proof_title")}
+                </h3>
+                <p style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", marginBottom: "18px" }}>
+                  {language === "ar"
+                    ? "يرجى رفع صورة لقطة الشاشة للتحويل مرة واحدة فقط لتأكيد حجز طلبك."
+                    : t("upload_proof_desc")}
+                </p>
 
               {uploadSuccess && (
                 <div
@@ -877,6 +1057,7 @@ function OrderTrackingContent() {
                   <input
                     type="file"
                     ref={fileInputRef}
+                    multiple={false}
                     accept="image/png,image/jpeg,image/jpg,image/webp"
                     onChange={handleFileChange}
                     style={{ display: "none" }}
@@ -1018,7 +1199,8 @@ function OrderTrackingContent() {
                 </button>
               </form>
             </div>
-          </div>
+          )}
+        </div>
 
           {/* History Timeline */}
           {order.status_history && order.status_history.length > 0 && (

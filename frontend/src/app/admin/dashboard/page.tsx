@@ -29,14 +29,31 @@ export default function AdminDashboardPage() {
 
     // 1. Fetch recent orders
     const fetchOrders = api
-      .get("/admin/orders?limit=5")
+      .get("/admin/orders?limit=10")
       .then((res) => {
-        const list = Array.isArray(res.data?.data)
+        const list: Order[] = Array.isArray(res.data?.data)
           ? res.data.data
           : Array.isArray(res.data)
           ? res.data
           : [];
-        setOrders(list);
+        setOrders(list.slice(0, 5));
+
+        // Resilient fallback: If analytics hasn't populated yet, compute initial estimates from loaded orders
+        setTotalRevenue((prev) => {
+          if (prev > 0) return prev;
+          return list
+            .filter((o) => o.status !== "cancelled")
+            .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+        });
+
+        setStatusCounts((prev) => {
+          if (Object.keys(prev).length > 0) return prev;
+          const fallbackCounts: Record<string, number> = {};
+          list.forEach((o) => {
+            fallbackCounts[o.status] = (fallbackCounts[o.status] || 0) + 1;
+          });
+          return fallbackCounts;
+        });
       })
       .catch(() => setOrders([]));
 
@@ -51,7 +68,9 @@ export default function AdminDashboardPage() {
           setStatusCounts(res.data.orders_by_status);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.error("Failed to load analytics KPIs:", err);
+      });
 
     // 3. Fetch registered customers count
     const fetchCustomers = api
@@ -72,12 +91,14 @@ export default function AdminDashboardPage() {
     const fetchDeposits = api
       .get("/admin/deposits?status=pending")
       .then((res) => {
-        const list = Array.isArray(res.data?.data)
-          ? res.data.data
-          : Array.isArray(res.data)
-          ? res.data
-          : [];
-        setPendingDeposits(list.length);
+        const total =
+          res.data?.total ??
+          (Array.isArray(res.data?.data)
+            ? res.data.data.length
+            : Array.isArray(res.data)
+            ? res.data.length
+            : 0);
+        setPendingDeposits(total);
       })
       .catch(() => setPendingDeposits(0));
 

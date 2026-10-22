@@ -168,20 +168,44 @@ export default function AdminOrderDetailPage({
     }
   };
 
-  const handleVerifyDeposit = async (depositId: number, status: "verified" | "rejected") => {
+  const handleVerifyDeposit = async (depositId: number, status: "verified" | "rejected" | "pending") => {
     try {
       await api.patch(`/admin/deposits/${depositId}/verify`, { status });
+      setBannerMessage(`Deposit status marked as "${status}".`);
       fetchOrderData();
     } catch {
       // Offline fallback
       if (order && order.deposits) {
+        const updatedDeposits = order.deposits.map((d) =>
+          d.id === depositId ? { ...d, status } : d
+        );
+        const verifiedSum = updatedDeposits
+          .filter((d) => d.status === "verified")
+          .reduce((sum, d) => sum + parseFloat(d.amount as any), 0);
         setOrder({
           ...order,
-          deposits: order.deposits.map((d) =>
-            d.id === depositId ? { ...d, status } : d
-          ),
+          deposits: updatedDeposits,
+          verified_deposits_amount: verifiedSum,
+          remaining_balance: Math.max(0, (order.total || 0) - verifiedSum),
         });
       }
+    } finally {
+      setTimeout(() => setBannerMessage(null), 3000);
+    }
+  };
+
+  const handleDeleteDeposit = async (depositId: number) => {
+    if (!confirm("Are you sure you want to delete this deposit receipt? This will adjust the verified balance and remaining due.")) {
+      return;
+    }
+    try {
+      await api.delete(`/admin/deposits/${depositId}`);
+      setBannerMessage("Deposit receipt deleted successfully.");
+      fetchOrderData();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Failed to delete deposit receipt");
+    } finally {
+      setTimeout(() => setBannerMessage(null), 3000);
     }
   };
 
@@ -595,6 +619,31 @@ export default function AdminOrderDetailPage({
               </form>
             )}
 
+            {order.deposits && order.deposits.length > 1 && (
+              <div
+                style={{
+                  backgroundColor: "#FEF2F2",
+                  border: "1px solid #FECACA",
+                  borderRadius: "12px",
+                  padding: "14px 18px",
+                  marginBottom: "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                }}
+              >
+                <AlertCircle size={22} color="#DC2626" style={{ flexShrink: 0 }} />
+                <div>
+                  <strong style={{ color: "#991B1B", fontSize: "0.875rem" }}>
+                    Multiple Deposits Detected ({order.deposits.length} deposits totaling {formatPrice(order.deposits.reduce((sum, d) => sum + parseFloat(d.amount as any), 0))})
+                  </strong>
+                  <div style={{ color: "#7F1D1D", fontSize: "0.75rem", marginTop: "2px" }}>
+                    Clients only pay a 50% deposit ({formatPrice(order.total * 0.5)}). Multiple deposits can mistakenly mark 100% of the product as paid. Use the Delete button below on any duplicate receipt.
+                  </div>
+                </div>
+              </div>
+            )}
+
             {(!order.deposits || order.deposits.length === 0) ? (
               <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem" }}>
                 No deposits submitted for this order yet.
@@ -633,8 +682,8 @@ export default function AdminOrderDetailPage({
                               fontSize: "0.6875rem",
                               fontWeight: 700,
                               textTransform: "uppercase",
-                              backgroundColor: dep.status === "verified" ? "#DCFCE7" : "#FEF3C7",
-                              color: dep.status === "verified" ? "#166534" : "#92400E",
+                              backgroundColor: dep.status === "verified" ? "#DCFCE7" : dep.status === "rejected" ? "#FEE2E2" : "#FEF3C7",
+                              color: dep.status === "verified" ? "#166534" : dep.status === "rejected" ? "#991B1B" : "#92400E",
                             }}
                           >
                             {dep.status}
@@ -655,13 +704,13 @@ export default function AdminOrderDetailPage({
                         </div>
                       </div>
 
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                         {dep.status === "pending" && (
                           <>
                             <button
                               onClick={() => handleVerifyDeposit(dep.id, "verified")}
                               style={{
-                                padding: "8px 16px",
+                                padding: "6px 14px",
                                 backgroundColor: "#059669",
                                 color: "#FFFFFF",
                                 border: "none",
@@ -680,7 +729,7 @@ export default function AdminOrderDetailPage({
                             <button
                               onClick={() => handleVerifyDeposit(dep.id, "rejected")}
                               style={{
-                                padding: "8px 16px",
+                                padding: "6px 14px",
                                 backgroundColor: "#DC2626",
                                 color: "#FFFFFF",
                                 border: "none",
@@ -698,6 +747,72 @@ export default function AdminOrderDetailPage({
                             </button>
                           </>
                         )}
+
+                        {dep.status === "verified" && (
+                          <button
+                            onClick={() => handleVerifyDeposit(dep.id, "rejected")}
+                            style={{
+                              padding: "6px 12px",
+                              backgroundColor: "#FEF3C7",
+                              color: "#92400E",
+                              border: "1px solid #FDE68A",
+                              borderRadius: "8px",
+                              fontSize: "0.75rem",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "4px",
+                            }}
+                            title="Un-verify this deposit and mark as rejected"
+                          >
+                            <X size={13} />
+                            Unverify / Reject
+                          </button>
+                        )}
+
+                        {dep.status === "rejected" && (
+                          <button
+                            onClick={() => handleVerifyDeposit(dep.id, "verified")}
+                            style={{
+                              padding: "6px 12px",
+                              backgroundColor: "#DCFCE7",
+                              color: "#166534",
+                              border: "1px solid #BBF7D0",
+                              borderRadius: "8px",
+                              fontSize: "0.75rem",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "4px",
+                            }}
+                          >
+                            <Check size={13} />
+                            Approve
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => handleDeleteDeposit(dep.id)}
+                          style={{
+                            padding: "6px 10px",
+                            backgroundColor: "#FEE2E2",
+                            color: "#DC2626",
+                            border: "1px solid #FECACA",
+                            borderRadius: "8px",
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                          title="Delete deposit record"
+                        >
+                          <Trash2 size={13} />
+                          Delete
+                        </button>
                       </div>
                     </div>
 
@@ -974,6 +1089,10 @@ export default function AdminOrderDetailPage({
               >
                 <span>Total Amount</span>
                 <span>{formatPrice(order.total)}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "var(--color-text-secondary)", fontSize: "0.8125rem" }}>
+                <span>Required 50% Deposit</span>
+                <span>{formatPrice(Math.round((order.total || 0) * 0.5))}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", color: "#059669", fontWeight: 600 }}>
                 <span>Verified Deposits</span>

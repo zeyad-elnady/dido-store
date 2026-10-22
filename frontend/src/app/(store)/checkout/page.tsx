@@ -62,7 +62,12 @@ export default function CheckoutPage() {
   const depositSectionRef = useRef<HTMLDivElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    if (files.length > 1) {
+      setFileError(language === "ar" ? "يرجى اختيار صورة واحدة فقط للإيصال." : "Please select only one receipt photo.");
+    }
+    const file = files[0];
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
@@ -1098,6 +1103,7 @@ export default function CheckoutPage() {
                 <input
                   type="file"
                   ref={depositFileInputRef}
+                  multiple={false}
                   accept="image/png,image/jpeg,image/jpg,image/webp"
                   onChange={handleFileChange}
                   style={{ display: "none" }}
@@ -1141,10 +1147,10 @@ export default function CheckoutPage() {
                       <UploadCloud size={24} color="var(--color-accent)" />
                     </div>
                     <div style={{ fontSize: "0.9375rem", fontWeight: 700, color: "var(--color-text)", marginBottom: "4px" }}>
-                      {language === "ar" ? "اضغطي هنا لاختيار صورة إيصال التحويل" : "Click here to upload transfer receipt screenshot"}
+                      {language === "ar" ? "اضغطي هنا لاختيار صورة إيصال التحويل (صورة واحدة فقط)" : "Click here to upload transfer receipt screenshot (1 photo only)"}
                     </div>
                     <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>
-                      {language === "ar" ? "صورة لقطة الشاشة (PNG, JPG, WEBP • الحد الأقصى 5 ميجابايت)" : "PNG, JPG, WEBP • Max 5MB"}
+                      {language === "ar" ? "صورة لقطة شاشة واحدة (PNG, JPG, WEBP • الحد الأقصى 5 ميجابايت)" : "Single screenshot photo (PNG, JPG, WEBP • Max 5MB)"}
                     </div>
                   </div>
                 ) : (

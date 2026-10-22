@@ -69,7 +69,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/orders/{order}/contact-link', [OrderController::class, 'contactLink']);
 
         // Deposits
-        Route::apiResource('deposits', DepositController::class)->only(['index', 'show', 'store']);
+        Route::apiResource('deposits', DepositController::class)->only(['index', 'show', 'store', 'destroy']);
         Route::patch('/deposits/{deposit}/verify', [DepositController::class, 'verify']);
 
         // Analytics

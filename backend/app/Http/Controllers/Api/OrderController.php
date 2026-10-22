@@ -191,7 +191,7 @@ class OrderController extends Controller
         $order = Order::where('order_number', $orderNumber)
             ->with(['items', 'statusHistory' => function ($q) {
                 $q->orderBy('created_at', 'desc');
-            }])
+            }, 'deposits'])
             ->first();
 
         // Also allow lookup by ID
@@ -199,7 +199,7 @@ class OrderController extends Controller
             $order = Order::where('id', $orderNumber)
                 ->with(['items', 'statusHistory' => function ($q) {
                     $q->orderBy('created_at', 'desc');
-                }])
+                }, 'deposits'])
                 ->first();
         }
 
@@ -208,7 +208,7 @@ class OrderController extends Controller
             $order = Order::latest()
                 ->with(['items', 'statusHistory' => function ($q) {
                     $q->orderBy('created_at', 'desc');
-                }])
+                }, 'deposits'])
                 ->first();
         }
 
@@ -231,6 +231,9 @@ class OrderController extends Controller
             'status_history' => $order->statusHistory,
             'shipping_address' => $order->shipping_address,
             'created_at' => $order->created_at,
+            'deposits' => $order->deposits,
+            'has_deposit' => $order->deposits->isNotEmpty(),
+            'deposit' => $order->deposits->last(),
         ]);
     }
 

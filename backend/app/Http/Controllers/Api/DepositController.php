@@ -7,6 +7,7 @@ use App\Models\Deposit;
 use App\Models\Order;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class DepositController extends Controller
 {
@@ -56,6 +57,30 @@ class DepositController extends Controller
         ]);
 
         $order = Order::findOrFail($validated['order_id']);
+
+        // Strictly enforce a single deposit transaction per order
+        $existingDeposit = Deposit::where('order_id', $order->id)->first();
+        if ($existingDeposit) {
+            if ($existingDeposit->status === 'verified') {
+                return response()->json([
+                    'message' => 'A deposit for this order has already been verified and locked.',
+                ], 422);
+            }
+
+            // Update existing pending deposit rather than creating a duplicate
+            if ($existingDeposit->screenshot_path) {
+                Storage::disk('public')->delete($existingDeposit->screenshot_path);
+            }
+            $screenshotPath = $request->file('screenshot')->store('deposits', 'public');
+            $existingDeposit->update([
+                'amount' => $validated['amount'],
+                'method' => $validated['method'],
+                'transfer_date' => $validated['transfer_date'],
+                'screenshot_path' => $screenshotPath,
+            ]);
+
+            return response()->json($existingDeposit->fresh(['order', 'customer']), 200);
+        }
 
         // Store screenshot
         $screenshotPath = $request->file('screenshot')->store('deposits', 'public');
@@ -107,6 +132,30 @@ class DepositController extends Controller
             'screenshot' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
 
+        // Strictly enforce single deposit receipt per order: prevent duplicate uploads
+        $existingDeposit = Deposit::where('order_id', $order->id)->first();
+        if ($existingDeposit) {
+            if ($existingDeposit->status === 'verified') {
+                return response()->json([
+                    'message' => 'A deposit for this order has already been verified and locked.',
+                ], 422);
+            }
+
+            // Update existing pending deposit rather than creating a duplicate
+            if ($existingDeposit->screenshot_path) {
+                Storage::disk('public')->delete($existingDeposit->screenshot_path);
+            }
+            $screenshotPath = $request->file('screenshot')->store('deposits', 'public');
+            $existingDeposit->update([
+                'amount' => $validated['amount'],
+                'method' => $validated['method'],
+                'transfer_date' => $validated['transfer_date'],
+                'screenshot_path' => $screenshotPath,
+            ]);
+
+            return response()->json($existingDeposit->fresh(['order', 'customer']), 200);
+        }
+
         $screenshotPath = $request->file('screenshot')->store('deposits', 'public');
 
         $deposit = Deposit::create([
@@ -128,17 +177,32 @@ class DepositController extends Controller
     public function verify(Request $request, Deposit $deposit): JsonResponse
     {
         $validated = $request->validate([
-            'status' => 'required|in:verified,rejected',
+            'status' => 'required|in:verified,rejected,pending',
             'admin_note' => 'nullable|string',
         ]);
 
+        $status = $validated['status'];
         $deposit->update([
-            'status' => $validated['status'],
+            'status' => $status,
             'admin_note' => $validated['admin_note'] ?? $deposit->admin_note,
-            'verified_by' => $request->user()->id,
-            'verified_at' => now(),
+            'verified_by' => $status === 'verified' ? $request->user()?->id : null,
+            'verified_at' => $status === 'verified' ? now() : null,
         ]);
 
         return response()->json($deposit->fresh(['order', 'customer', 'verifier']));
+    }
+
+    /**
+     * Delete a deposit (admin only).
+     */
+    public function destroy(Deposit $deposit): JsonResponse
+    {
+        if ($deposit->screenshot_path) {
+            Storage::disk('public')->delete($deposit->screenshot_path);
+        }
+
+        $deposit->delete();
+
+        return response()->json(['message' => 'Deposit receipt deleted successfully.']);
     }
 }
