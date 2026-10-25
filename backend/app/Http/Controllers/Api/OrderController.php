@@ -139,7 +139,7 @@ class OrderController extends Controller
         $order = $this->orderService->updateStatus(
             $order,
             $validated['status'],
-            $request->user()->id,
+            $request->user()?->id,
             $validated['note'] ?? null
         );
 

@@ -71,6 +71,7 @@ export default function AdminOrdersPage() {
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -324,6 +325,33 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const handleQuickStatusChange = async (orderId: number, nextStatus: OrderStatus) => {
+    setUpdatingOrderId(orderId);
+    try {
+      await api.patch(`/admin/orders/${orderId}/status`, {
+        status: nextStatus,
+      });
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: nextStatus } : o))
+      );
+      setSuccessToast(
+        language === "ar"
+          ? `تم تحديث حالة الطلب إلى "${nextStatus}" بنجاح`
+          : `Order status updated to "${nextStatus.replace(/_/g, " ")}" successfully`
+      );
+      setTimeout(() => setSuccessToast(null), 3500);
+    } catch (err: any) {
+      console.error("Failed to quick-update order status:", err);
+      const errMsg =
+        err.response?.data?.message ||
+        (err.response?.data?.errors ? Object.values(err.response.data.errors).flat().join(" ") : null) ||
+        "Could not update status. Please try again.";
+      alert(`Error updating order status: ${errMsg}`);
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       {/* Toast Notification */}
@@ -554,9 +582,50 @@ export default function AdminOrdersPage() {
                         {formatPrice(remaining)}
                       </td>
                       <td style={{ padding: "16px 20px" }}>
-                        <span className={`status-badge status-${order.status}`}>
-                          {order.status.replace(/_/g, " ")}
-                        </span>
+                        <div style={{ position: "relative", display: "inline-block" }}>
+                          <select
+                            value={order.status}
+                            disabled={updatingOrderId === order.id}
+                            onChange={(e) => handleQuickStatusChange(order.id, e.target.value as OrderStatus)}
+                            className={`badge status-${order.status}`}
+                            style={{
+                              cursor: updatingOrderId === order.id ? "wait" : "pointer",
+                              border: "1px solid rgba(0,0,0,0.06)",
+                              outline: "none",
+                              fontWeight: 600,
+                              fontSize: "0.8125rem",
+                              padding: "6px 24px 6px 12px",
+                              borderRadius: "20px",
+                              appearance: "none",
+                              WebkitAppearance: "none",
+                              MozAppearance: "none",
+                              transition: "all 0.2s ease",
+                              boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                            }}
+                            title={language === "ar" ? "اضغط لتغيير الحالة فوراً" : "Click to change status"}
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="ordered_from_shein">Ordered from SHEIN</option>
+                            <option value="shipped">Shipped</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
+                          <span
+                            style={{
+                              position: "absolute",
+                              right: isRTL ? undefined : "8px",
+                              left: isRTL ? "8px" : undefined,
+                              top: "50%",
+                              transform: "translateY(-50%)",
+                              pointerEvents: "none",
+                              fontSize: "0.65rem",
+                              opacity: 0.6,
+                            }}
+                          >
+                            ▼
+                          </span>
+                        </div>
                       </td>
                       <td style={{ padding: "16px 20px", fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>

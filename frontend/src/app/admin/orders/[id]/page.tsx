@@ -100,33 +100,22 @@ export default function AdminOrderDetailPage({
     setUpdatingStatus(true);
 
     try {
-      await api.patch(`/admin/orders/${order.id}/status`, {
+      const res = await api.patch(`/admin/orders/${order.id}/status`, {
         status: newStatus,
         note: statusNote || undefined,
       });
+      const updatedOrder = res.data?.data || res.data || { ...order, status: newStatus };
+      setOrder(updatedOrder);
       setBannerMessage(`Status successfully updated to "${newStatus.replace(/_/g, " ")}"`);
       setStatusNote("");
       fetchOrderData();
-    } catch {
-      // Offline fallback: update local state
-      setBannerMessage(`Status updated to "${newStatus.replace(/_/g, " ")}" (Saved locally)`);
-      setOrder({
-        ...order,
-        status: newStatus,
-        status_history: [
-          ...(order.status_history || []),
-          {
-            id: Date.now(),
-            order_id: order.id,
-            old_status: order.status,
-            new_status: newStatus,
-            changed_by: 1,
-            note: statusNote || "Status updated by admin",
-            created_at: new Date().toISOString(),
-          },
-        ],
-      });
-      setStatusNote("");
+    } catch (err: any) {
+      console.error("Failed to update status:", err);
+      const errMsg =
+        err.response?.data?.message ||
+        (err.response?.data?.errors ? Object.values(err.response.data.errors).flat().join(" ") : null) ||
+        "Failed to update status on server. Please try again.";
+      alert(`Error updating order status: ${errMsg}`);
     } finally {
       setUpdatingStatus(false);
       setTimeout(() => setBannerMessage(null), 3000);

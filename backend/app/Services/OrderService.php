@@ -88,8 +88,22 @@ class OrderService
         return DB::transaction(function () use ($order, $newStatus, $userId, $note) {
             $oldStatus = $order->status;
 
-            // Validate status transition
+            // Validate status
             $this->validateStatusTransition($oldStatus, $newStatus);
+
+            if ($oldStatus === $newStatus) {
+                if (!empty($note)) {
+                    OrderStatusHistory::create([
+                        'order_id' => $order->id,
+                        'old_status' => $oldStatus,
+                        'new_status' => $newStatus,
+                        'changed_by' => $userId,
+                        'note' => $note,
+                        'created_at' => now(),
+                    ]);
+                }
+                return $order->fresh(['customer', 'items', 'statusHistory']);
+            }
 
             // Handle stock changes on confirm
             if ($newStatus === Order::STATUS_CONFIRMED && $oldStatus === Order::STATUS_PENDING) {
@@ -100,6 +114,7 @@ class OrderService
             if ($newStatus === Order::STATUS_CANCELLED && in_array($oldStatus, [
                 Order::STATUS_CONFIRMED,
                 Order::STATUS_ORDERED_FROM_SHEIN,
+                Order::STATUS_SHIPPED,
             ])) {
                 $this->restoreStock($order);
             }
@@ -116,7 +131,7 @@ class OrderService
                 'created_at' => now(),
             ]);
 
-            return $order->fresh();
+            return $order->fresh(['customer', 'items', 'statusHistory']);
         });
     }
 
@@ -159,45 +174,28 @@ class OrderService
      */
     private function validateStatusTransition(string $from, string $to): void
     {
-        $allowed = [
-            Order::STATUS_PENDING => [Order::STATUS_CONFIRMED, Order::STATUS_CANCELLED],
-            Order::STATUS_CONFIRMED => [Order::STATUS_ORDERED_FROM_SHEIN, Order::STATUS_CANCELLED],
-            Order::STATUS_ORDERED_FROM_SHEIN => [Order::STATUS_SHIPPED, Order::STATUS_CANCELLED],
-            Order::STATUS_SHIPPED => [Order::STATUS_DELIVERED],
-            Order::STATUS_DELIVERED => [],
-            Order::STATUS_CANCELLED => [],
-        ];
-
-        if (!in_array($to, $allowed[$from] ?? [])) {
+        if (!in_array($to, Order::STATUSES)) {
             throw ValidationException::withMessages([
-                'status' => "Cannot transition from '{$from}' to '{$to}'.",
+                'status' => "Invalid status '{$to}'.",
             ]);
         }
     }
 
     /**
-     * Decrement stock for all items in an order.
+     * Decrement stock for all items in an order (never blocks confirmation for on-demand SHEIN sourcing).
      */
     private function decrementStock(Order $order): void
     {
         foreach ($order->items as $item) {
             $product = $item->product;
-
-            if ($product->stock_quantity < $item->quantity) {
-                throw ValidationException::withMessages([
-                    'stock' => "Insufficient stock for \"{$product->name_en}\". Available: {$product->stock_quantity}, Requested: {$item->quantity}.",
-                ]);
+            if (!$product) {
+                continue;
             }
 
-            $product->stock_quantity -= $item->quantity;
-
-            // Auto-mark unavailable if stock hits zero
-            if ($product->stock_quantity <= 0) {
-                $product->stock_quantity = 0;
-                $product->is_available = false;
+            if ($product->stock_quantity > 0) {
+                $product->stock_quantity = max(0, $product->stock_quantity - $item->quantity);
+                $product->save();
             }
-
-            $product->save();
         }
     }
 
@@ -208,6 +206,10 @@ class OrderService
     {
         foreach ($order->items as $item) {
             $product = $item->product;
+            if (!$product) {
+                continue;
+            }
+
             $product->stock_quantity += $item->quantity;
             $product->is_available = true;
             $product->save();
