@@ -18,7 +18,6 @@ const STORAGE_KEY = "dido_store_policy_accepted_v2";
 export default function StorePolicyModal() {
   const { language, isRTL, toggleLanguage } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
-  const [agreed, setAgreed] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   const [hasAcceptedPreviously, setHasAcceptedPreviously] = useState(false);
@@ -407,65 +406,34 @@ export default function StorePolicyModal() {
           </div>
         </div>
 
-        {/* Checkbox agreement */}
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            cursor: "pointer",
-            padding: "10px 14px",
-            borderRadius: "10px",
-            backgroundColor: agreed ? "var(--color-bg-alt)" : "transparent",
-            transition: "all 0.2s ease",
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={agreed}
-            onChange={(e) => setAgreed(e.target.checked)}
-            style={{
-              width: "18px",
-              height: "18px",
-              accentColor: "var(--color-accent)",
-              cursor: "pointer",
-            }}
-          />
-          <span
-            style={{
-              fontSize: "0.875rem",
-              fontWeight: 600,
-              color: "var(--color-text)",
-            }}
-          >
-            {language === "ar"
-              ? "قرأت كافة الشروط والسياسات وأوافق عليها للمتابعة"
-              : "I have read and agree to all store terms and policies"}
-          </span>
-        </label>
-
         {/* Action Button */}
         <button
           type="button"
           onClick={handleAccept}
-          disabled={!agreed}
           style={{
             width: "100%",
-            padding: "15px 24px",
+            padding: "16px 24px",
             borderRadius: "14px",
-            backgroundColor: agreed ? "var(--color-accent)" : "#D1D5DB",
+            backgroundColor: "var(--color-accent)",
             color: "#FFFFFF",
-            fontSize: "1rem",
+            fontSize: "1.0625rem",
             fontWeight: 700,
             border: "none",
-            cursor: agreed ? "pointer" : "not-allowed",
+            cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             gap: "10px",
-            boxShadow: agreed ? "0 8px 20px rgba(184, 115, 95, 0.35)" : "none",
+            boxShadow: "0 8px 24px rgba(196, 144, 124, 0.4)",
             transition: "all 0.25s ease",
-            transform: agreed ? "translateY(0)" : "none",
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = "translateY(-1px)";
+            e.currentTarget.style.boxShadow = "0 10px 28px rgba(196, 144, 124, 0.5)";
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "0 8px 24px rgba(196, 144, 124, 0.4)";
           }}
         >
           <CheckCircle2 size={20} />
