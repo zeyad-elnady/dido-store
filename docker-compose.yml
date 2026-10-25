@@ -38,8 +38,8 @@ services:
     environment:
       APP_NAME: "Dido Store"
       APP_ENV: production
-      APP_DEBUG: "true"
-      APP_KEY: ${APP_KEY:-base64:h/RxCGwLXvukSo/FMxv20ezJfvCOVHb24cWLItvauYk=}
+      APP_DEBUG: "false"
+      APP_KEY: ${APP_KEY:-base64:uN2R3Q1e2l6aJ8wFvK5yL3zP9rM0bA7sD4fG6hJ8kL=}
       APP_URL: ${APP_URL:-https://dido-studio.store}
       FRONTEND_URL: ${FRONTEND_URL:-https://dido-studio.store}
       DB_CONNECTION: mysql
@@ -48,6 +48,8 @@ services:
       DB_DATABASE: ${DB_DATABASE:-dido_store}
       DB_USERNAME: ${DB_USERNAME:-dido_user}
       DB_PASSWORD: ${DB_PASSWORD:-dido_secret_password}
+      SANCTUM_STATEFUL_DOMAINS: "localhost:3000,localhost,dido-studio.store,www.dido-studio.store,152.239.116.172"
+      SESSION_DOMAIN: ".dido-studio.store"
     volumes:
       - backend_storage:/var/www/html/storage/app/public
     networks:
