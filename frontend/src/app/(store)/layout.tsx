@@ -21,6 +21,7 @@ import type { PublicSettings } from "@/types";
 import { CartProvider, useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import CartDrawer from "@/components/store/CartDrawer";
+import StorePolicyModal from "@/components/store/StorePolicyModal";
 import { MOCK_SETTINGS } from "@/lib/mockData";
 
 const CartBadge = dynamic(() => import("@/components/store/CartBadge"), {
@@ -437,7 +438,8 @@ function StoreHeaderAndContent({ children }: { children: React.ReactNode }) {
         <MessageCircle size={30} />
       </a>
 
-      {/* Cart Drawer Component */}
+      {/* Policy Modal & Cart Drawer Component */}
+      <StorePolicyModal />
       <CartDrawer />
 
       {/* Footer */}
@@ -584,6 +586,28 @@ function StoreHeaderAndContent({ children }: { children: React.ReactNode }) {
                   {link.label}
                 </Link>
               ))}
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("dido:open-policy"));
+                  }
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  color: "rgba(255,255,255,0.75)",
+                  textDecoration: "none",
+                  fontSize: "0.9375rem",
+                  cursor: "pointer",
+                  textAlign: "start",
+                  fontFamily: "inherit",
+                  transition: "color 0.2s",
+                }}
+              >
+                {language === "ar" ? "شروط وسياسة المتجر" : "Store Policy"}
+              </button>
             </div>
           </div>
         </div>
