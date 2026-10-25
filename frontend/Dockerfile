@@ -44,8 +44,6 @@ COPY --chown=nextjs:nodejs --from=builder /app/.next ./.next
 COPY --chown=nextjs:nodejs --from=builder /app/node_modules ./node_modules
 COPY --chown=nextjs:nodejs --from=builder /app/package.json ./package.json
 
-RUN mkdir -p /app/.next/server/route-cache && chown -R nextjs:nodejs /app
-
 USER nextjs
 EXPOSE 3000
 
