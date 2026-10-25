@@ -8,6 +8,7 @@ use App\Models\Order;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class DepositController extends Controller
 {
@@ -58,44 +59,51 @@ class DepositController extends Controller
 
         $order = Order::findOrFail($validated['order_id']);
 
-        // Strictly enforce a single deposit transaction per order
-        $existingDeposit = Deposit::where('order_id', $order->id)->first();
-        if ($existingDeposit) {
-            if ($existingDeposit->status === 'verified') {
-                return response()->json([
-                    'message' => 'A deposit for this order has already been verified and locked.',
-                ], 422);
+        // Cap deposit to 50% of order total so client deposit can never falsely cover 100%
+        $maxDeposit = round((float) $order->total * 0.5, 2);
+        $finalAmount = $maxDeposit > 0 ? min((float) $validated['amount'], $maxDeposit) : (float) $validated['amount'];
+
+        return DB::transaction(function () use ($request, $validated, $order, $finalAmount) {
+            // Strictly enforce single deposit record per order using row lock
+            $existingDeposit = Deposit::where('order_id', $order->id)->lockForUpdate()->first();
+            if ($existingDeposit) {
+                if ($existingDeposit->status === 'verified') {
+                    return response()->json([
+                        'message' => 'A deposit for this order has already been verified and locked.',
+                        'deposit' => $existingDeposit,
+                    ], 200);
+                }
+
+                // Update existing pending deposit rather than creating a duplicate
+                if ($existingDeposit->screenshot_path) {
+                    Storage::disk('public')->delete($existingDeposit->screenshot_path);
+                }
+                $screenshotPath = $request->file('screenshot')->store('deposits', 'public');
+                $existingDeposit->update([
+                    'amount' => $finalAmount,
+                    'method' => $validated['method'],
+                    'transfer_date' => $validated['transfer_date'],
+                    'screenshot_path' => $screenshotPath,
+                ]);
+
+                return response()->json($existingDeposit->fresh(['order', 'customer']), 200);
             }
 
-            // Update existing pending deposit rather than creating a duplicate
-            if ($existingDeposit->screenshot_path) {
-                Storage::disk('public')->delete($existingDeposit->screenshot_path);
-            }
+            // Store screenshot
             $screenshotPath = $request->file('screenshot')->store('deposits', 'public');
-            $existingDeposit->update([
-                'amount' => $validated['amount'],
+
+            $deposit = Deposit::create([
+                'order_id' => $order->id,
+                'customer_id' => $order->customer_id,
+                'amount' => $finalAmount,
                 'method' => $validated['method'],
                 'transfer_date' => $validated['transfer_date'],
                 'screenshot_path' => $screenshotPath,
+                'status' => Deposit::STATUS_PENDING,
             ]);
 
-            return response()->json($existingDeposit->fresh(['order', 'customer']), 200);
-        }
-
-        // Store screenshot
-        $screenshotPath = $request->file('screenshot')->store('deposits', 'public');
-
-        $deposit = Deposit::create([
-            'order_id' => $order->id,
-            'customer_id' => $order->customer_id,
-            'amount' => $validated['amount'],
-            'method' => $validated['method'],
-            'transfer_date' => $validated['transfer_date'],
-            'screenshot_path' => $screenshotPath,
-            'status' => Deposit::STATUS_PENDING,
-        ]);
-
-        return response()->json($deposit->load(['order', 'customer']), 201);
+            return response()->json($deposit->load(['order', 'customer']), 201);
+        });
     }
 
     /**
@@ -132,43 +140,50 @@ class DepositController extends Controller
             'screenshot' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
 
-        // Strictly enforce single deposit receipt per order: prevent duplicate uploads
-        $existingDeposit = Deposit::where('order_id', $order->id)->first();
-        if ($existingDeposit) {
-            if ($existingDeposit->status === 'verified') {
-                return response()->json([
-                    'message' => 'A deposit for this order has already been verified and locked.',
-                ], 422);
+        // Cap deposit to 50% of order total so client deposit can never falsely cover 100%
+        $maxDeposit = round((float) $order->total * 0.5, 2);
+        $finalAmount = $maxDeposit > 0 ? min((float) $validated['amount'], $maxDeposit) : (float) $validated['amount'];
+
+        return DB::transaction(function () use ($request, $validated, $order, $finalAmount) {
+            // Strictly enforce single deposit receipt per order: lock row to prevent race conditions
+            $existingDeposit = Deposit::where('order_id', $order->id)->lockForUpdate()->first();
+            if ($existingDeposit) {
+                if ($existingDeposit->status === 'verified') {
+                    return response()->json([
+                        'message' => 'A deposit for this order has already been verified and locked.',
+                        'deposit' => $existingDeposit,
+                    ], 200);
+                }
+
+                // Update existing pending deposit rather than creating a duplicate
+                if ($existingDeposit->screenshot_path) {
+                    Storage::disk('public')->delete($existingDeposit->screenshot_path);
+                }
+                $screenshotPath = $request->file('screenshot')->store('deposits', 'public');
+                $existingDeposit->update([
+                    'amount' => $finalAmount,
+                    'method' => $validated['method'],
+                    'transfer_date' => $validated['transfer_date'],
+                    'screenshot_path' => $screenshotPath,
+                ]);
+
+                return response()->json($existingDeposit->fresh(['order', 'customer']), 200);
             }
 
-            // Update existing pending deposit rather than creating a duplicate
-            if ($existingDeposit->screenshot_path) {
-                Storage::disk('public')->delete($existingDeposit->screenshot_path);
-            }
             $screenshotPath = $request->file('screenshot')->store('deposits', 'public');
-            $existingDeposit->update([
-                'amount' => $validated['amount'],
+
+            $deposit = Deposit::create([
+                'order_id' => $order->id,
+                'customer_id' => $order->customer_id,
+                'amount' => $finalAmount,
                 'method' => $validated['method'],
                 'transfer_date' => $validated['transfer_date'],
                 'screenshot_path' => $screenshotPath,
+                'status' => Deposit::STATUS_PENDING,
             ]);
 
-            return response()->json($existingDeposit->fresh(['order', 'customer']), 200);
-        }
-
-        $screenshotPath = $request->file('screenshot')->store('deposits', 'public');
-
-        $deposit = Deposit::create([
-            'order_id' => $order->id,
-            'customer_id' => $order->customer_id,
-            'amount' => $validated['amount'],
-            'method' => $validated['method'],
-            'transfer_date' => $validated['transfer_date'],
-            'screenshot_path' => $screenshotPath,
-            'status' => Deposit::STATUS_PENDING,
-        ]);
-
-        return response()->json($deposit, 201);
+            return response()->json($deposit, 201);
+        });
     }
 
     /**

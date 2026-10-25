@@ -544,7 +544,14 @@ export default function AdminOrdersPage() {
               ) : (
                 filteredOrders.map((order) => {
                   const itemsCount = order.items?.reduce((s, i) => s + i.quantity, 0) || 1;
-                  const remaining = order.remaining_balance ?? Math.max(0, order.total - (order.verified_deposits_amount ?? 0));
+                  const isDeliveredOrCancelled = order.status === "delivered" || order.status === "cancelled";
+                  const stdDeposit = Math.round((order.total || 0) * 0.5);
+                  const rawRemaining = typeof order.remaining_balance === "number"
+                    ? order.remaining_balance
+                    : Math.max(0, order.total - (order.verified_deposits_amount ?? 0));
+                  const remaining = (!isDeliveredOrCancelled && rawRemaining <= 0)
+                    ? Math.max(1, (order.total || 0) - stdDeposit)
+                    : rawRemaining;
                   const whatsapp = order.customer?.whatsapp_number || order.customer?.phone;
 
                   return (

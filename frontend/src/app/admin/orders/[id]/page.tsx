@@ -219,7 +219,15 @@ export default function AdminOrderDetailPage({
   }
 
   const customerWhatsapp = order.customer?.whatsapp_number || order.customer?.phone;
-  const isPaidInFull = (order.remaining_balance || 0) <= 0;
+  const isDeliveredOrCancelled = order.status === "delivered" || order.status === "cancelled";
+  const required50Deposit = Math.round((order.total || 0) * 0.5);
+  const rawRemaining = typeof order.remaining_balance === "number"
+    ? order.remaining_balance
+    : Math.max(0, order.total - (order.verified_deposits_amount ?? 0));
+  const effectiveRemaining = (!isDeliveredOrCancelled && rawRemaining <= 0)
+    ? Math.max(1, (order.total || 0) - required50Deposit)
+    : rawRemaining;
+  const isPaidInFull = isDeliveredOrCancelled && effectiveRemaining <= 0;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
@@ -1084,8 +1092,8 @@ export default function AdminOrderDetailPage({
                 <span>{formatPrice(Math.round((order.total || 0) * 0.5))}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", color: "#059669", fontWeight: 600 }}>
-                <span>Verified Deposits</span>
-                <span>- {formatPrice(order.verified_deposits_amount || 0)}</span>
+                <span>Verified Deposit (50% Down-payment)</span>
+                <span>- {formatPrice(isDeliveredOrCancelled ? (order.verified_deposits_amount || 0) : Math.min(order.verified_deposits_amount || required50Deposit, required50Deposit))}</span>
               </div>
               <div
                 style={{
@@ -1098,8 +1106,8 @@ export default function AdminOrderDetailPage({
                   color: isPaidInFull ? "#059669" : "var(--color-accent-hover)",
                 }}
               >
-                <span>Remaining Due:</span>
-                <span>{formatPrice(order.remaining_balance ?? order.total)}</span>
+                <span>Remaining Due (COD on Delivery):</span>
+                <span>{formatPrice(effectiveRemaining)}</span>
               </div>
             </div>
 
