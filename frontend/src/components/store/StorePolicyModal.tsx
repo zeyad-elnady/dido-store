@@ -321,16 +321,15 @@ export default function StorePolicyModal() {
                 {language === "ar" ? (
                   <>
                     <strong>لا يوجد استرداد للأموال أو استرجاع أو استبدال للطلب</strong>{" "}
-                    إلا إذا كانت المشكلة تخص <strong>المقاس</strong>، أو وجود{" "}
+                    إلا في حال وجود{" "}
                     <strong>عيوب في المنتج</strong>، أو حدوث{" "}
                     <strong>تأخير في موعد التسليم</strong>.
                   </>
                 ) : (
                   <>
                     <strong>No refunds, returns, or order exchanges</strong> are
-                    permitted unless the issue relates to{" "}
-                    <strong>sizing discrepancy</strong>,{" "}
-                    <strong>manufacturing defects</strong>, or{" "}
+                    permitted unless there are{" "}
+                    <strong>manufacturing defects</strong>, or a{" "}
                     <strong>delivery delay</strong>.
                   </>
                 )}
